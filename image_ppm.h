@@ -474,6 +474,130 @@ void seuil_image_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int seuils[]
 }
 
 
+
+void seuil_image_ppm(char cNomImgLue[250], char cNomImgEcrite[250]) {
+    int nH, nW, nTaille;
+    int nTaille3;
+    
+    OCTET *ImgIn, *ImgOut, *PlanR, *PlanV, *PlanB;
+
+    // Lire la taille de l'image
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    nTaille3 = nTaille * 3;
+
+    // Allocation mémoire pour l'image d'entrée et les plans R, V, B
+    allocation_tableau(ImgIn, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue, ImgIn, nTaille);
+
+    allocation_tableau(PlanR, OCTET, nTaille);
+    planR(PlanR, ImgIn, nTaille);
+
+    allocation_tableau(PlanV, OCTET, nTaille);
+    planV(PlanV, ImgIn, nTaille);
+
+    allocation_tableau(PlanB, OCTET, nTaille);
+    planB(PlanB, ImgIn, nTaille);
+
+    // Demander à l'utilisateur le nombre de seuils pour chaque composante
+    int nb_SeuilsR, nb_SeuilsV, nb_SeuilsB;
+    printf("Entrez le nombre de seuils pour la composante Rouge (0 pour pas de seuil) : ");
+    scanf("%d", &nb_SeuilsR);
+
+    printf("Entrez le nombre de seuils pour la composante Verte (0 pour pas de seuil) : ");
+    scanf("%d", &nb_SeuilsV);
+
+    printf("Entrez le nombre de seuils pour la composante Bleue (0 pour pas de seuil) : ");
+    scanf("%d", &nb_SeuilsB);
+
+    // Allocation des tableaux de seuils pour chaque composante
+    int *seuilsR = NULL, *seuilsV = NULL, *seuilsB = NULL;
+
+    // Si le nombre de seuils est supérieur à 0, allouer et demander les seuils
+    if (nb_SeuilsR > 0) {
+        seuilsR = (int *)malloc(nb_SeuilsR * sizeof(int));
+        printf("Entrez les seuils pour la composante Rouge :\n");
+        for (int i = 0; i < nb_SeuilsR; i++) {
+            printf("Seuil %d : ", i + 1);
+            scanf("%d", &seuilsR[i]);
+        }
+    }
+
+    if (nb_SeuilsV > 0) {
+        seuilsV = (int *)malloc(nb_SeuilsV * sizeof(int));
+        printf("Entrez les seuils pour la composante Verte :\n");
+        for (int i = 0; i < nb_SeuilsV; i++) {
+            printf("Seuil %d : ", i + 1);
+            scanf("%d", &seuilsV[i]);
+        }
+    }
+
+    if (nb_SeuilsB > 0) {
+        seuilsB = (int *)malloc(nb_SeuilsB * sizeof(int));
+        printf("Entrez les seuils pour la composante Bleue :\n");
+        for (int i = 0; i < nb_SeuilsB; i++) {
+            printf("Seuil %d : ", i + 1);
+            scanf("%d", &seuilsB[i]);
+        }
+    }
+
+    // Traitement des seuils pour chaque composante (R, V, B)
+    for (int i = 0; i < nTaille; i++) {
+        // Traitement pour la composante Rouge (R)
+        if (nb_SeuilsR > 0) {
+            int lvlR = 0;
+            for (int k = 0; k < nb_SeuilsR; k++) {
+                if (PlanR[i] >= seuilsR[k]) {
+                    lvlR++;
+                }
+            }
+            PlanR[i] = lvlR * (255 / nb_SeuilsR);
+        }
+
+        // Traitement pour la composante Verte (V)
+        if (nb_SeuilsV > 0) {
+            int lvlV = 0;
+            for (int k = 0; k < nb_SeuilsV; k++) {
+                if (PlanV[i] >= seuilsV[k]) {
+                    lvlV++;
+                }
+            }
+            PlanV[i] = lvlV * (255 / nb_SeuilsV);
+        }
+
+        // Traitement pour la composante Bleue (B)
+        if (nb_SeuilsB > 0) {
+            int lvlB = 0;
+            for (int k = 0; k < nb_SeuilsB; k++) {
+                if (PlanB[i] >= seuilsB[k]) {
+                    lvlB++;
+                }
+            }
+            PlanB[i] = lvlB * (255 / nb_SeuilsB);
+        }
+    }
+
+    // Allocation de l'image de sortie
+    allocation_tableau(ImgOut, OCTET, nTaille3);
+    for (int i = 0; i < nTaille; i++) {
+        ImgOut[i*3] = PlanR[i];
+        ImgOut[i*3+1] = PlanV[i];
+        ImgOut[i*3+2] = PlanB[i];
+    }
+
+    // Écriture de l'image de sortie
+    ecrire_image_ppm(cNomImgEcrite, ImgOut, nH, nW);
+
+    // Libération de la mémoire
+    free(ImgIn); free(ImgOut); free(PlanR); free(PlanV); free(PlanB);
+    if (seuilsR) free(seuilsR);
+    if (seuilsV) free(seuilsV);
+    if (seuilsB) free(seuilsB);
+}
+
+
+
+
 void ecrire_histogramme_pgm(char nom_fichier[250], int histogramme[], int taille_histogramme) {
     FILE *fichier;
     
