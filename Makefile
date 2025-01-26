@@ -1,103 +1,40 @@
-# Thomas Daley
-# September 13, 2021
-
-# A generic build template for C/C++ programs
-
-# executable name
-EXE = app
-
-# C compiler
-CC = gcc
-# C++ compiler
-CXX = g++
-# linker
-LD = g++
-
-# C flags
-CFLAGS = 
-# C++ flags
-CXXFLAGS = 
-# C/C++ flags
-CPPFLAGS = -Wall
-# dependency-generation flags
-DEPFLAGS = -MMD -MP
-# linker flags
+CXXFLAGS = -Wall -Wextra -I. -std=c++11
 LDFLAGS = 
-# library flags
 LDLIBS = 
 
-# build directories
-BIN = bin
-OBJ = obj
-SRC = src
+# Répertoires
+SRC_DIR = .
+OBJ_DIR = obj
+BIN_DIR = bin
 
-SOURCES := $(wildcard $(SRC)/*.c $(SRC)/*.cc $(SRC)/*.cpp $(SRC)/*.cxx)
+# Fichiers sources
+SRC = $(wildcard $(SRC_DIR)/*.cpp)
 
-OBJECTS := \
-	$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(wildcard $(SRC)/*.c)) \
-	$(patsubst $(SRC)/%.cc, $(OBJ)/%.o, $(wildcard $(SRC)/*.cc)) \
-	$(patsubst $(SRC)/%.cpp, $(OBJ)/%.o, $(wildcard $(SRC)/*.cpp)) \
-	$(patsubst $(SRC)/%.cxx, $(OBJ)/%.o, $(wildcard $(SRC)/*.cxx))
+# Fichiers objets
+OBJ = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRC))
 
-# include compiler-generated dependency rules
-DEPENDS := $(OBJECTS:.o=.d)
+# Nom de l'exécutable
+EXE = app
 
-# compile C source
-COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) -c -o $@
-# compile C++ source
-COMPILE.cxx = $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(CPPFLAGS) -c -o $@
-# link objects
-LINK.o = $(LD) $(LDFLAGS) $(LDLIBS) $(OBJECTS) -o $@
+# Cible par défaut
+all: $(BIN_DIR)/$(EXE)
 
-.DEFAULT_GOAL = all
+# Compilation de l'exécutable
+$(BIN_DIR)/$(EXE): $(OBJ)
+	mkdir -p $(BIN_DIR)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-.PHONY: all
-all: $(BIN)/$(EXE)
+# Compilation des fichiers objets
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	mkdir -p $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(BIN)/$(EXE): $(SRC) $(OBJ) $(BIN) $(OBJECTS)
-	$(LINK.o)
-
-$(SRC):
-	mkdir -p $(SRC)
-
-$(OBJ):
-	mkdir -p $(OBJ)
-
-$(BIN):
-	mkdir -p $(BIN)
-
-$(OBJ)/%.o:	$(SRC)/%.c
-	$(COMPILE.c) $<
-
-$(OBJ)/%.o:	$(SRC)/%.cc
-	$(COMPILE.cxx) $<
-
-$(OBJ)/%.o:	$(SRC)/%.cpp
-	$(COMPILE.cxx) $<
-
-$(OBJ)/%.o:	$(SRC)/%.cxx
-	$(COMPILE.cxx) $<
-
-# force rebuild
-.PHONY: remake
-remake:	clean $(BIN)/$(EXE)
-
-# execute the program
-.PHONY: run
-run: $(BIN)/$(EXE)
-	./$(BIN)/$(EXE)
-
-# remove previous build and objects
+# Nettoyage des fichiers objets et de l'exécutable
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS)
-	$(RM) $(DEPENDS)
-	$(RM) $(BIN)/$(EXE)
+	rm -rf $(OBJ_DIR) $(BIN_DIR)
 
-# remove everything except source
-.PHONY: reset
-reset:
-	$(RM) -r $(OBJ)
-	$(RM) -r $(BIN)
-
--include $(DEPENDS)
+# Exécution du programme avec des arguments
+.PHONY: run
+run: all
+	./$(BIN_DIR)/$(EXE) $(ARGS)

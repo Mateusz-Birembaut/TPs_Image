@@ -15,7 +15,7 @@
 
 #include "ImageBase.h"
 #include "image_ppm.h"
-
+#include <cstring> 
 
 
 ImageBase::ImageBase(void)

@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 #include <stdio.h>
-#include "image_ppm.h"
+#include "donnees.h"
 #include "codage.h"
 
 int main(int argc, char* argv[]) {
@@ -301,7 +301,7 @@ int main(int argc, char* argv[]) {
         
         printf("  flouterPPM      - Flouter une image PPM.\n");
         printf("  Usage: flouterPPM ImageIn.ppm ImageOut.ppm rayon\n\n");
-        return 1;
+        return 0;
     }
     
     
@@ -342,7 +342,7 @@ int main(int argc, char* argv[]) {
         printf("  RGBtoYCbCr          - \n");
         printf("  modifY          - \n");
         printf("\n");
-        return 1;
+        return 0;
     }else{
         printf("Fonction non reconnue.\n");
         return 1;
