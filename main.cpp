@@ -229,6 +229,27 @@ int main(int argc, char* argv[]) {
         }
     
     }
+
+    else if (strcmp(argv[1], "k_mean_256_pgm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s %s ImageIn.ppm ImageOut.pgm \n", argv[0], argv[1]);
+            return 1;
+        }else {
+            k_mean_256_pgm(argv[2], argv[3]);
+        }
+    
+    }
+
+    else if (strcmp(argv[1], "decode_indexed_pgm") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s %s ImageIn.pgm FichierPalette.txt ImageOut.ppm  \n", argv[0], argv[1]);
+            return 1;
+        }else {
+            decode_indexed_pgm(argv[2], argv[3], argv[4]);
+        }
+    
+    }
+
     else if (strcmp(argv[1], "pnsr") == 0 ) {
 
         if (argc != 4) {
