@@ -719,6 +719,16 @@ void histogramme_ppm(char cNomImgLue[250], char cNomFichierEcrit[250]) {
 
 /*============================== TP 2 =============================================*/
 
+void erosion(OCTET *in, OCTET *out, int nH, int nW, int rayon){
+
+    for (int i = 0; i < nH; i++) {
+        for (int j = 0; j < nW; j++) {
+            out[i*nW+j] = getCouleurMinimal(in, nW, nH, i, j, rayon);
+        }
+    }
+
+}
+
 void erosion_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
     int nH, nW, nTaille;
     OCTET *ImgIn, *ImgOut;
@@ -730,14 +740,66 @@ void erosion_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
     lire_image_pgm(cNomImgLue, ImgIn, nTaille);
     allocation_tableau(ImgOut, OCTET, nTaille);
 
-    for (int i = 0; i < nH; i++) {
-        for (int j = 0; j < nW; j++) {
-            ImgOut[i*nW+j] = getCouleurMinimal(ImgIn, nW, nH, i, j, rayon);
-        }
-    }
+    erosion(ImgIn, ImgOut, nH, nW, rayon);
 
     ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
     free(ImgIn); free(ImgOut);
+}
+
+void erosion_ppm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon){
+    int nH, nW, nTaille;
+
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    int nTaille3 = nTaille * 3;
+
+    OCTET *ImgIn, *ImgOut, *PlanR, *PlanV, *PlanB;
+
+    allocation_tableau(ImgIn, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue, ImgIn, nH * nW);
+
+    allocation_tableau(PlanR, OCTET, nTaille);
+    planR(PlanR, ImgIn, nTaille);
+
+    allocation_tableau(PlanV, OCTET, nTaille);
+    planV(PlanV, ImgIn, nTaille);
+
+    allocation_tableau(PlanB, OCTET, nTaille);
+    planB(PlanB, ImgIn, nTaille);
+
+    OCTET *PlanRTemp, *PlanVTemp, *PlanBTemp;
+
+    allocation_tableau(PlanRTemp, OCTET, nTaille);
+
+    allocation_tableau(PlanVTemp, OCTET, nTaille);
+
+    allocation_tableau(PlanBTemp, OCTET, nTaille);
+
+    allocation_tableau(ImgOut, OCTET, nTaille3);
+
+    erosion(PlanR, PlanRTemp, nH, nW, rayon);
+    erosion(PlanV, PlanVTemp, nH, nW, rayon);
+    erosion(PlanB, PlanBTemp, nH, nW, rayon);
+
+    for (int i = 0; i < nTaille; i++) {
+        ImgOut[i * 3] = PlanRTemp[i];
+        ImgOut[i * 3 + 1] = PlanVTemp[i];
+        ImgOut[i * 3 + 2] = PlanBTemp[i];
+    }
+
+    ecrire_image_ppm(cNomImgEcrite, ImgOut, nH, nW);
+
+    free(PlanR); free(PlanV); free(PlanB); free(ImgIn); free(PlanRTemp); free(PlanVTemp); free(PlanBTemp); 
+
+}
+
+
+void dilatation(OCTET *in, OCTET *out, int nH, int nW, int rayon){
+    for (int i = 0; i < nH; i++) {
+        for (int j = 0; j < nW; j++) {
+            out[i*nW+j] = getCouleurMaximal(in, nW, nH, i, j, rayon);
+        }
+    }
 }
 
 void dilatation_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
@@ -751,14 +813,57 @@ void dilatation_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
     lire_image_pgm(cNomImgLue, ImgIn, nTaille);
     allocation_tableau(ImgOut, OCTET, nTaille);
 
-    for (int i = 0; i < nH; i++) {
-        for (int j = 0; j < nW; j++) {
-            ImgOut[i*nW+j] = getCouleurMaximal(ImgIn, nW, nH, i, j, rayon);
-        }
-    }
+    dilatation(ImgIn, ImgOut,  nH,  nW,  rayon);
 
     ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
     free(ImgIn); free(ImgOut);
+}
+
+
+void dilatation_ppm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon){
+    int nH, nW, nTaille;
+
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    int nTaille3 = nTaille * 3;
+
+    OCTET *ImgIn, *ImgOut, *PlanR, *PlanV, *PlanB;
+
+    allocation_tableau(ImgIn, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue, ImgIn, nH * nW);
+
+    allocation_tableau(PlanR, OCTET, nTaille);
+    planR(PlanR, ImgIn, nTaille);
+
+    allocation_tableau(PlanV, OCTET, nTaille);
+    planV(PlanV, ImgIn, nTaille);
+
+    allocation_tableau(PlanB, OCTET, nTaille);
+    planB(PlanB, ImgIn, nTaille);
+
+    OCTET *PlanRTemp, *PlanVTemp, *PlanBTemp;
+
+    allocation_tableau(PlanRTemp, OCTET, nTaille);
+
+    allocation_tableau(PlanVTemp, OCTET, nTaille);
+
+    allocation_tableau(PlanBTemp, OCTET, nTaille);
+
+    allocation_tableau(ImgOut, OCTET, nTaille3);
+
+    dilatation(PlanR, PlanRTemp, nH, nW, rayon);
+    dilatation(PlanV, PlanVTemp, nH, nW, rayon);
+    dilatation(PlanB, PlanBTemp, nH, nW, rayon);
+
+    for (int i = 0; i < nTaille; i++) {
+        ImgOut[i * 3] = PlanRTemp[i];
+        ImgOut[i * 3 + 1] = PlanVTemp[i];
+        ImgOut[i * 3 + 2] = PlanBTemp[i];
+    }
+
+    ecrire_image_ppm(cNomImgEcrite, ImgOut, nH, nW);
+
+    free(PlanR); free(PlanV); free(PlanB); free(ImgIn); free(PlanRTemp); free(PlanVTemp); free(PlanBTemp); 
 }
 
 
@@ -772,6 +877,15 @@ void fermeture_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
     remove(cNomImgTemp); 
 }
 
+void fermeture_ppm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
+    char cNomImgTemp[250] = "temp.pgm"; 
+
+    erosion_ppm(cNomImgLue, cNomImgTemp, rayon); 
+    dilatation_ppm(cNomImgTemp, cNomImgEcrite, rayon); 
+
+    remove(cNomImgTemp); 
+}
+
 void ouverture_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
     char cNomImgTemp[250] = "temp.pgm"; // Nom temporaire pour le fichier intermédiaire
 
@@ -779,8 +893,24 @@ void ouverture_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
     dilatation_pgm(cNomImgLue, cNomImgTemp, rayon); // Dilatation du résultat de l'érosion et sauvegarde dans le fichier final
     erosion_pgm(cNomImgTemp, cNomImgEcrite, rayon); // Érosion et sauvegarde dans un fichier temporaire
     
+    remove(cNomImgTemp); 
+}
+
+void ouverture_ppm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
+    char cNomImgTemp[250] = "temp.pgm"; 
+
+    dilatation_ppm(cNomImgLue, cNomImgTemp, rayon); 
+    erosion_ppm(cNomImgTemp, cNomImgEcrite, rayon); 
 
     remove(cNomImgTemp); 
+}
+
+void difference(OCTET *in1, OCTET *in2, OCTET *out, int nH, int nW){
+    for (int i = 0; i < nH; i++) {
+        for (int j = 0; j < nW; j++) {
+            out[i*nW+j] = abs(in2[i*nW+j] - in1[i*nW+j]);
+        }
+    }
 }
 
 void difference_pgm(char cNomImgLue1[250],char cNomImgLue2[250], char cNomImgEcrite[250]) {
@@ -796,14 +926,74 @@ void difference_pgm(char cNomImgLue1[250],char cNomImgLue2[250], char cNomImgEcr
     lire_image_pgm(cNomImgLue2, ImgIn2, nH * nW);
     allocation_tableau(ImgOut, OCTET, nTaille);
 
-    for (int i = 0; i < nH; i++) {
-        for (int j = 0; j < nW; j++) {
-            ImgOut[i*nW+j] = abs(ImgIn2[i*nW+j] - ImgIn1[i*nW+j]);
-        }
-    }
+    difference( ImgIn1, ImgIn2, ImgOut, nH, nW);
 
     ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
     free(ImgIn1); free(ImgIn2); free(ImgOut);
+}
+
+void difference_ppm(char cNomImgLue1[250], char cNomImgLue2[250], char cNomImgEcrite[250]){
+    int nH, nW, nTaille;
+
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue1, &nH, &nW);
+    nTaille = nH * nW;
+    int nTaille3 = nTaille * 3;
+
+    OCTET *ImgIn1, *ImgIn2, *ImgOut, *PlanR, *PlanV, *PlanB, *PlanR2, *PlanV2, *PlanB2;
+
+    //--------------- IMAGE IN 1 -------------
+    allocation_tableau(ImgIn1, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue1, ImgIn1, nH * nW);
+
+
+    //--------------- IMAGE IN 2 -------------
+    allocation_tableau(ImgIn2, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue2, ImgIn2, nH * nW);
+
+    // cannaux
+
+    allocation_tableau(PlanR, OCTET, nTaille);
+    allocation_tableau(PlanV, OCTET, nTaille);
+    allocation_tableau(PlanB, OCTET, nTaille);
+
+    allocation_tableau(PlanR2, OCTET, nTaille);
+    allocation_tableau(PlanV2, OCTET, nTaille);
+    allocation_tableau(PlanB2, OCTET, nTaille);
+
+    planR(PlanR, ImgIn1, nTaille);
+    planV(PlanV, ImgIn1, nTaille);
+    planB(PlanB, ImgIn1, nTaille);
+
+    planR(PlanR2, ImgIn2, nTaille);
+    planV(PlanV2, ImgIn2, nTaille);
+    planB(PlanB2, ImgIn2, nTaille);
+
+    // stockage temp dans des plans 
+
+    OCTET *PlanRTemp, *PlanVTemp, *PlanBTemp;
+
+    allocation_tableau(PlanRTemp, OCTET, nTaille);
+
+    allocation_tableau(PlanVTemp, OCTET, nTaille);
+
+    allocation_tableau(PlanBTemp, OCTET, nTaille);
+
+    allocation_tableau(ImgOut, OCTET, nTaille3);
+
+    difference(PlanR, PlanR2, PlanRTemp, nH, nW);
+    difference(PlanV, PlanV2, PlanVTemp, nH, nW);
+    difference(PlanB, PlanB2, PlanBTemp, nH, nW);
+
+    for (int i = 0; i < nTaille; i++) {
+        ImgOut[i * 3] = PlanRTemp[i];
+        ImgOut[i * 3 + 1] = PlanVTemp[i];
+        ImgOut[i * 3 + 2] = PlanBTemp[i];
+    }
+
+    ecrire_image_ppm(cNomImgEcrite, ImgOut, nH, nW);
+
+    free(PlanR); free(PlanV); free(PlanB); free(ImgIn1); free(ImgIn2); free(PlanRTemp); free(PlanVTemp); free(PlanBTemp); 
+    free(PlanR2); free(PlanV2); free(PlanB2);
 }
 
 /*============================== TP 3 =============================================*/
@@ -1182,5 +1372,220 @@ void modifY(char cNomImgY[250], int k , char cNomImgOut[250]) {
 
 }
 
+
+void traitement2(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut, *Temp;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+    allocation_tableau(ImgOut, OCTET, nTaille);
+    allocation_tableau(Temp, OCTET, nTaille);
+
+    // 3 érosions
+    erosion(ImgIn, Temp, nH, nW, rayon);
+    erosion(Temp, ImgOut, nH, nW, rayon);
+    erosion(ImgOut, Temp, nH, nW, rayon);
+
+    // 6 dilatations
+    dilatation(Temp, ImgOut, nH, nW, rayon);
+    dilatation(ImgOut, Temp, nH, nW, rayon);
+    dilatation(Temp, ImgOut, nH, nW, rayon);
+    dilatation(ImgOut, Temp, nH, nW, rayon);
+    dilatation(Temp, ImgOut, nH, nW, rayon);
+    dilatation(ImgOut, Temp, nH, nW, rayon);
+
+    // 3 érosions
+    erosion(Temp, ImgOut, nH, nW, rayon);
+    erosion(ImgOut, Temp, nH, nW, rayon);
+    erosion(Temp, ImgOut, nH, nW, rayon);
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+    free(ImgIn); free(ImgOut); free(Temp);
+}
+
+void traitement1(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut, *Temp;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+    allocation_tableau(ImgOut, OCTET, nTaille);
+    allocation_tableau(Temp, OCTET, nTaille);
+
+    // 3 dilatations
+    dilatation(ImgIn, Temp, nH, nW, rayon);
+    dilatation(Temp, ImgOut, nH, nW, rayon);
+    dilatation(ImgOut, Temp, nH, nW, rayon);
+
+    // 6 érosions
+    erosion(Temp, ImgOut, nH, nW, rayon);
+    erosion(ImgOut, Temp, nH, nW, rayon);
+    erosion(Temp, ImgOut, nH, nW, rayon);
+    erosion(ImgOut, Temp, nH, nW, rayon);
+    erosion(Temp, ImgOut, nH, nW, rayon);
+    erosion(ImgOut, Temp, nH, nW, rayon);
+
+    // 3 dilatations
+    dilatation(Temp, ImgOut, nH, nW, rayon);
+    dilatation(ImgOut, Temp, nH, nW, rayon);
+    dilatation(Temp, ImgOut, nH, nW, rayon);
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+    free(ImgIn); free(ImgOut); free(Temp);
+}
+
+void traitement2_ppm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
+    int nH, nW, nTaille, nTaille3;
+    OCTET *ImgIn, *ImgOut, *PlanR, *PlanV, *PlanB, *TempR, *TempV, *TempB;
+
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    nTaille3 = nTaille * 3;
+
+    allocation_tableau(ImgIn, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue, ImgIn, nH * nW);
+    allocation_tableau(ImgOut, OCTET, nTaille3);
+    allocation_tableau(PlanR, OCTET, nTaille);
+    allocation_tableau(PlanV, OCTET, nTaille);
+    allocation_tableau(PlanB, OCTET, nTaille);
+    allocation_tableau(TempR, OCTET, nTaille);
+    allocation_tableau(TempV, OCTET, nTaille);
+    allocation_tableau(TempB, OCTET, nTaille);
+
+    planR(PlanR, ImgIn, nTaille);
+    planV(PlanV, ImgIn, nTaille);
+    planB(PlanB, ImgIn, nTaille);
+
+    // 3 érosions
+    erosion(PlanR, TempR, nH, nW, rayon);
+    erosion(PlanV, TempV, nH, nW, rayon);
+    erosion(PlanB, TempB, nH, nW, rayon);
+    erosion(TempR, PlanR, nH, nW, rayon);
+    erosion(TempV, PlanV, nH, nW, rayon);
+    erosion(TempB, PlanB, nH, nW, rayon);
+    erosion(PlanR, TempR, nH, nW, rayon);
+    erosion(PlanV, TempV, nH, nW, rayon);
+    erosion(PlanB, TempB, nH, nW, rayon);
+
+    // 6 dilatations
+    dilatation(TempR, PlanR, nH, nW, rayon);
+    dilatation(TempV, PlanV, nH, nW, rayon);
+    dilatation(TempB, PlanB, nH, nW, rayon);
+    dilatation(PlanR, TempR, nH, nW, rayon);
+    dilatation(PlanV, TempV, nH, nW, rayon);
+    dilatation(PlanB, TempB, nH, nW, rayon);
+    dilatation(TempR, PlanR, nH, nW, rayon);
+    dilatation(TempV, PlanV, nH, nW, rayon);
+    dilatation(TempB, PlanB, nH, nW, rayon);
+    dilatation(PlanR, TempR, nH, nW, rayon);
+    dilatation(PlanV, TempV, nH, nW, rayon);
+    dilatation(PlanB, TempB, nH, nW, rayon);
+    dilatation(TempR, PlanR, nH, nW, rayon);
+    dilatation(TempV, PlanV, nH, nW, rayon);
+    dilatation(TempB, PlanB, nH, nW, rayon);
+
+    // 3 érosions
+    erosion(PlanR, TempR, nH, nW, rayon);
+    erosion(PlanV, TempV, nH, nW, rayon);
+    erosion(PlanB, TempB, nH, nW, rayon);
+    erosion(TempR, PlanR, nH, nW, rayon);
+    erosion(TempV, PlanV, nH, nW, rayon);
+    erosion(TempB, PlanB, nH, nW, rayon);
+    erosion(PlanR, TempR, nH, nW, rayon);
+    erosion(PlanV, TempV, nH, nW, rayon);
+    erosion(PlanB, TempB, nH, nW, rayon);
+
+    for (int i = 0; i < nTaille; i++) {
+        ImgOut[i * 3] = TempR[i];
+        ImgOut[i * 3 + 1] = TempV[i];
+        ImgOut[i * 3 + 2] = TempB[i];
+    }
+
+    ecrire_image_ppm(cNomImgEcrite, ImgOut, nH, nW);
+    free(ImgIn); free(ImgOut); free(PlanR); free(PlanV); free(PlanB);
+    free(TempR); free(TempV); free(TempB);
+}
+
+
+void traitement1_ppm(char cNomImgLue[250], char cNomImgEcrite[250], int rayon) {
+    int nH, nW, nTaille, nTaille3;
+    OCTET *ImgIn, *ImgOut, *PlanR, *PlanV, *PlanB, *TempR, *TempV, *TempB;
+
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    nTaille3 = nTaille * 3;
+
+    allocation_tableau(ImgIn, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue, ImgIn, nH * nW);
+    allocation_tableau(ImgOut, OCTET, nTaille3);
+
+    allocation_tableau(PlanR, OCTET, nTaille);
+    allocation_tableau(PlanV, OCTET, nTaille);
+    allocation_tableau(PlanB, OCTET, nTaille);
+    
+    allocation_tableau(TempR, OCTET, nTaille);
+    allocation_tableau(TempV, OCTET, nTaille);
+    allocation_tableau(TempB, OCTET, nTaille);
+
+    planR(PlanR, ImgIn, nTaille);
+    planV(PlanV, ImgIn, nTaille);
+    planB(PlanB, ImgIn, nTaille);
+
+    // 3 dilatations
+    dilatation(PlanR, TempR, nH, nW, rayon);
+    dilatation(PlanV, TempV, nH, nW, rayon);
+    dilatation(PlanB, TempB, nH, nW, rayon);
+    dilatation(TempR, PlanR, nH, nW, rayon);
+    dilatation(TempV, PlanV, nH, nW, rayon);
+    dilatation(TempB, PlanB, nH, nW, rayon);
+    dilatation(PlanR, TempR, nH, nW, rayon);
+    dilatation(PlanV, TempV, nH, nW, rayon);
+    dilatation(PlanB, TempB, nH, nW, rayon);
+
+    // 6 érosions
+    erosion(TempR, PlanR, nH, nW, rayon);
+    erosion(TempV, PlanV, nH, nW, rayon);
+    erosion(TempB, PlanB, nH, nW, rayon);
+    erosion(PlanR, TempR, nH, nW, rayon);
+    erosion(PlanV, TempV, nH, nW, rayon);
+    erosion(PlanB, TempB, nH, nW, rayon);
+    erosion(TempR, PlanR, nH, nW, rayon);
+    erosion(TempV, PlanV, nH, nW, rayon);
+    erosion(TempB, PlanB, nH, nW, rayon);
+    erosion(PlanR, TempR, nH, nW, rayon);
+    erosion(PlanV, TempV, nH, nW, rayon);
+    erosion(PlanB, TempB, nH, nW, rayon);
+    erosion(TempR, PlanR, nH, nW, rayon);
+    erosion(TempV, PlanV, nH, nW, rayon);
+    erosion(TempB, PlanB, nH, nW, rayon);
+
+    // 3 dilatations
+    dilatation(PlanR, TempR, nH, nW, rayon);
+    dilatation(PlanV, TempV, nH, nW, rayon);
+    dilatation(PlanB, TempB, nH, nW, rayon);
+    dilatation(TempR, PlanR, nH, nW, rayon);
+    dilatation(TempV, PlanV, nH, nW, rayon);
+    dilatation(TempB, PlanB, nH, nW, rayon);
+    dilatation(PlanR, TempR, nH, nW, rayon);
+    dilatation(PlanV, TempV, nH, nW, rayon);
+    dilatation(PlanB, TempB, nH, nW, rayon);
+
+    for (int i = 0; i < nTaille; i++) {
+        ImgOut[i * 3] = TempR[i];
+        ImgOut[i * 3 + 1] = TempV[i];
+        ImgOut[i * 3 + 2] = TempB[i];
+    }
+
+    ecrire_image_ppm(cNomImgEcrite, ImgOut, nH, nW);
+    free(ImgIn); free(ImgOut); free(PlanR); free(PlanV); free(PlanB);
+    free(TempR); free(TempV); free(TempB);
+}
 
 

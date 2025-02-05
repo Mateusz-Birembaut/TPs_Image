@@ -114,6 +114,13 @@ int main(int argc, char* argv[]) {
         difference_pgm(argv[2], argv[3], argv[4]);
     } 
     
+    else if (strcmp(argv[1], "differencePPM") == 0) {
+        if (argc != 5) {
+            printf("Usage: %s differencePGM ImageIn1.ppm ImageIn2.ppm ImageOut.ppm\n", argv[0]);
+            return 1;
+        }
+        difference_ppm(argv[2], argv[3], argv[4]);
+    } 
     
     else if (strcmp(argv[1], "inversePGM") == 0) {
         if (argc != 4) {
@@ -229,28 +236,7 @@ int main(int argc, char* argv[]) {
         }
     
     }
-
-    else if (strcmp(argv[1], "k_mean_256_pgm") == 0 ) {
-        if (argc != 4) {
-            printf("Usage: %s %s ImageIn.ppm ImageOut.pgm \n", argv[0], argv[1]);
-            return 1;
-        }else {
-            k_mean_256_pgm(argv[2], argv[3]);
-        }
-    
-    }
-
-    else if (strcmp(argv[1], "decode_indexed_pgm") == 0 ) {
-        if (argc != 5) {
-            printf("Usage: %s %s ImageIn.pgm FichierPalette.txt ImageOut.ppm  \n", argv[0], argv[1]);
-            return 1;
-        }else {
-            decode_indexed_pgm(argv[2], argv[3], argv[4]);
-        }
-    
-    }
-
-    else if (strcmp(argv[1], "pnsr") == 0 ) {
+    else if (strcmp(argv[1], "psnr") == 0 ) {
 
         if (argc != 4) {
             printf("Usage: %s %s ImageOriginale.ppm ImageModifie.ppm \n", argv[0], argv[1]);
@@ -258,7 +244,116 @@ int main(int argc, char* argv[]) {
             PSNR(argv[2], argv[3]);
         }
     }
+
+    else if (strcmp(argv[1], "ex3_tp2") == 0 ) {
+
+        if (argc != 4) {
+            printf("Usage: %s %s ImageOriginale.ppm ImageModifie.ppm \n", argv[0], argv[1]);
+        }else {
+            ex3_tp2(argv[2], argv[3]);
+        }
+    }
+
+    else if (strcmp(argv[1], "reduce_resample_YCbCr") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageInY.pgm ImageInCb.pgm ImageInCr.pgm", argv[1]);
+            return 1;
+        } else {
+            re_sample_ycbcr(argv[2], argv[3], argv[4]);
+        }
+    } 
+
+    else if (strcmp(argv[1], "erosionPPM") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.ppm ImageOut.ppm rayon", argv[1]);
+            return 1;
+        } else {
+            erosion_ppm(argv[2], argv[3], atoi(argv[4]));
+        }
+    } 
+
+    else if (strcmp(argv[1], "dilatationPPM") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.ppm ImageOut.ppm rayon", argv[1]);
+            return 1;
+        } else {
+            dilatation_ppm(argv[2], argv[3], atoi(argv[4]));
+        }
+    } 
     
+    else if (strcmp(argv[1], "fermeturePPM") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.ppm ImageOut.ppm rayon", argv[1]);
+            return 1;
+        } else {
+            fermeture_ppm(argv[2], argv[3], atoi(argv[4]));
+        }
+    } 
+
+    else if (strcmp(argv[1], "ouverturePPM") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.ppm ImageOut.ppm rayon", argv[1]);
+            return 1;
+        } else {
+            fermeture_ppm(argv[2], argv[3], atoi(argv[4]));
+        }
+    } 
+
+
+    else if (strcmp(argv[1], "t1") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.ppm ImageOut.ppm rayon", argv[1]);
+            return 1;
+        } else {
+            traitement1(argv[2], argv[3], atoi(argv[4]));
+        }
+    } 
+
+    else if (strcmp(argv[1], "t1PPM") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.ppm ImageOut.ppm rayon", argv[1]);
+            return 1;
+        } else {
+            traitement1_ppm(argv[2], argv[3], atoi(argv[4]));
+        }
+    } 
+
+    else if (strcmp(argv[1], "t2PPM") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.ppm ImageOut.ppm rayon", argv[1]);
+            return 1;
+        } else {
+            traitement2_ppm(argv[2], argv[3], atoi(argv[4]));
+        }
+    }
+
+    
+    else if (strcmp(argv[1], "t2") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.ppm ImageOut.ppm rayon", argv[1]);
+            return 1;
+        } else {
+            traitement2(argv[2], argv[3], atoi(argv[4]));
+        }
+    } 
+
+    else if (strcmp(argv[1], "difference_map_PGM") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.pgm ImageOut.pgm", argv[1]);
+            return 1;
+        } else {
+            difference_map_pgm(argv[2], argv[3]);
+        }
+    } 
+
+    else if (strcmp(argv[1], "entropie") == 0 ) {
+        if (argc != 3) {
+            printf("Usage: %s ImageIn.pgm ", argv[1]);
+            return 1;
+        } else {
+            entropie(argv[2]);
+        }
+    } 
     
     else if (strcmp(argv[1], "help") == 0){
         printf("\nVoici la liste des fonctions disponibles :\n\n");

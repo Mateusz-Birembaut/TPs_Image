@@ -1,8 +1,7 @@
+#include <cstdlib>
 #include <math.h>
 #include <vector>
 #include <iostream>
-#include <fstream>
-#include <sstream>
 
 // c1 : 9;68;84
 // c2 : 253;186;12
@@ -43,10 +42,6 @@ class Vec3{
         return *this;
     }
 
-    bool operator ==(const Vec3& a) {  
-        return r == a.r && v == a.v && b == a.b;
-    }
-
 
     public:
         static float dist(const Vec3& a, const Vec3& b) {  // Utilisation de const Vec3&
@@ -54,22 +49,6 @@ class Vec3{
         }
 
 };
-
-void ecrire_couleurs_index_pgm(char nom_fichier[250], Vec3 centroids[], int n) {
-    FILE *fichier;
-    
-    if ((fichier = fopen(nom_fichier, "w")) == NULL) {
-        printf("\nPas d'acces en ecriture sur le fichier %s \n", nom_fichier);
-        exit(EXIT_FAILURE);
-    } else {
-        for (int i = 0; i < n; i++) {
-            fprintf(fichier, "%d %f %f %f\n", i, centroids[i].r, centroids[i].v, centroids[i].b);
-        }
-
-        fclose(fichier);
-    }
-}
-
 
 
 void k_mean_recursive(std::vector<Vec3>& grp1, std::vector<Vec3>& grp2, Vec3& c1, Vec3& c2, int depth, int depthMax) {
@@ -119,13 +98,9 @@ void k_mean_recursive(std::vector<Vec3>& grp1, std::vector<Vec3>& grp2, Vec3& c1
         }
     }
 
+
     grp1 = new_grp1;
     grp2 = new_grp2;
-    
-    if (c1 == newC1 && c2 == newC2) {
-        return;
-    }
-
     c1 = newC1;
     c2 = newC2;
 
@@ -219,15 +194,13 @@ void k_mean_256(char cNomImgLue[250], char cNomImgEcrite[250]) {
     lire_image_ppm(cNomImgLue, ImgIn, nH * nW);
     allocation_tableau(ImgOut, OCTET, nTaille);
 
-    Vec3  centroids[256];
-
-    for (int i = 0; i < 256; i++) { // initialisation des centroids aléatoires
+    std::vector<Vec3> centroids(256);
+    for (int i = 0; i < 256; i++) {
         int randomIndex = rand() % (nTaille / 3) * 3;
         centroids[i] = Vec3(ImgIn[randomIndex], ImgIn[randomIndex + 1], ImgIn[randomIndex + 2]);
     }
 
- 
-    for (int iteration = 0; iteration < 20; iteration++) { // 15 interations max
+    for (int iteration = 0; iteration < 12; iteration++) {
         std::vector<std::vector<Vec3>> groups(256);
 
         for (int i = 0; i < nTaille; i += 3) {
@@ -235,7 +208,7 @@ void k_mean_256(char cNomImgLue[250], char cNomImgEcrite[250]) {
             int bestCentroid = 0;
             float minDist = Vec3::dist(color, centroids[0]);
 
-            for (int c = 1; c < 256; c++) { // trouver le centroid le plus proche et l'ajouter au groupe
+            for (int c = 1; c < 256; c++) {
                 float dist = Vec3::dist(color, centroids[c]);
                 if (dist < minDist) {
                     minDist = dist;
@@ -245,8 +218,6 @@ void k_mean_256(char cNomImgLue[250], char cNomImgEcrite[250]) {
             groups[bestCentroid].push_back(color);
         }
 
-        bool stop = true;
-
         for (int c = 0; c < 256; c++) {
             Vec3 newCentroid(0, 0, 0);
             for (const Vec3& color : groups[c]) {
@@ -255,14 +226,7 @@ void k_mean_256(char cNomImgLue[250], char cNomImgEcrite[250]) {
             if (!groups[c].empty()) {
                 newCentroid /= groups[c].size();
             }
-            if (centroids[c].r != newCentroid.r || centroids[c].v != newCentroid.v || centroids[c].b != newCentroid.b) {
-                stop = false;
-            }            
             centroids[c] = newCentroid;
-        }
-
-        if (stop) { // Si les centroids ne changent plus, on arrête
-            break;
         }
     }
 
@@ -271,7 +235,7 @@ void k_mean_256(char cNomImgLue[250], char cNomImgEcrite[250]) {
         int bestCentroid = 0;
         float minDist = Vec3::dist(color, centroids[0]);
 
-        for (int c = 1; c < 256; c++) { // trouver le centroid le plus proche
+        for (int c = 1; c < 256; c++) {
             float dist = Vec3::dist(color, centroids[c]);
             if (dist < minDist) {
                 minDist = dist;
@@ -279,94 +243,12 @@ void k_mean_256(char cNomImgLue[250], char cNomImgEcrite[250]) {
             }
         }
 
-        // Remplacer la couleur par celle du centroid le plus proche
         ImgOut[i] = static_cast<int>(centroids[bestCentroid].r);
         ImgOut[i + 1] = static_cast<int>(centroids[bestCentroid].v);
         ImgOut[i + 2] = static_cast<int>(centroids[bestCentroid].b);
     }
 
     ecrire_image_ppm(cNomImgEcrite, ImgOut, nH, nW);
-}
-
-void k_mean_256_pgm(char cNomImgLue[250], char cNomImgEcrite[250]) {
-    int nH, nW, nTaille;
-
-    OCTET *ImgIn, *ImgOut;
-    
-    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
-    nTaille = nH * nW * 3;
-  
-    allocation_tableau(ImgIn, OCTET, nTaille);
-    lire_image_ppm(cNomImgLue, ImgIn, nH * nW);
-    allocation_tableau(ImgOut, OCTET, nTaille / 3);
-
-    Vec3  centroids[256];
-
-    for (int i = 0; i < 256; i++) { // initialisation des centroids aléatoires
-        int randomIndex = rand() % (nTaille / 3) * 3;
-        centroids[i] = Vec3(ImgIn[randomIndex], ImgIn[randomIndex + 1], ImgIn[randomIndex + 2]);
-    }
-
- 
-    for (int iteration = 0; iteration < 20; iteration++) { // 15 interations max
-        std::vector<std::vector<Vec3>> groups(256);
-
-        for (int i = 0; i < nTaille; i += 3) {
-            Vec3 color(ImgIn[i], ImgIn[i + 1], ImgIn[i + 2]);
-            int bestCentroid = 0;
-            float minDist = Vec3::dist(color, centroids[0]);
-
-            for (int c = 1; c < 256; c++) { // trouver le centroid le plus proche et l'ajouter au groupe
-                float dist = Vec3::dist(color, centroids[c]);
-                if (dist < minDist) {
-                    minDist = dist;
-                    bestCentroid = c;
-                }
-            }
-            groups[bestCentroid].push_back(color);
-        }
-
-        bool stop = true;
-
-        for (int c = 0; c < 256; c++) {
-            Vec3 newCentroid(0, 0, 0);
-            for (const Vec3& color : groups[c]) {
-                newCentroid += color;
-            }
-            if (!groups[c].empty()) {
-                newCentroid /= groups[c].size();
-            }
-            if (centroids[c].r != newCentroid.r || centroids[c].v != newCentroid.v || centroids[c].b != newCentroid.b) {
-                stop = false;
-            }            
-            centroids[c] = newCentroid;
-        }
-
-        if (stop) { // Si les centroids ne changent plus, on arrête
-            break;
-        }
-    }
-
-    for (int i = 0; i < nTaille; i += 3) {
-        Vec3 color(ImgIn[i], ImgIn[i + 1], ImgIn[i + 2]);
-        int bestCentroid = 0;
-        float minDist = Vec3::dist(color, centroids[0]);
-
-        for (int c = 1; c < 256; c++) { // trouver le centroid le plus proche
-            float dist = Vec3::dist(color, centroids[c]);
-            if (dist < minDist) {
-                minDist = dist;
-                bestCentroid = c;
-            }
-        }
-
-        // Remplacer par l'index du centroid le plus proche
-        ImgOut[i/3] = bestCentroid;
-    }
-
-    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
-    std::string fileName = std::string(cNomImgEcrite) + "_couleurs.txt";
-    ecrire_couleurs_index_pgm(const_cast<char*>(fileName.c_str()), centroids, 256);
 }
 
 void PSNR (char cNomImgLue[250], char cNomImgLue2[250]){
@@ -399,51 +281,282 @@ void PSNR (char cNomImgLue[250], char cNomImgLue2[250]){
     
     float pnsr = 10* log10(pow(255,2) / eqm);
     std::cout << " PNSR : " << pnsr  << " dB " << std::endl;
+
+
+}
+
+void reduce_image_pgm(OCTET *ImgIn, OCTET *ImgOut, int nH, int nW, int reduction) {
+    int nH2 = nH / reduction; 
+    int nW2 = nW / reduction;
+
+    for (int i = 0; i < nH2; i++) {
+        for (int j = 0; j < nW2; j++) {
+            ImgOut[i * nW2 + j] = ImgIn[(i * reduction) * nW + (j * reduction)];
+        }
+    }
 }
 
 
-void decode_indexed_pgm(char cNomImgIndexed[250], char cNomPalette[250], char cNomImgSortie[250]) {
-    int nH, nW;
-    lire_nb_lignes_colonnes_image_pgm(cNomImgIndexed, &nH, &nW);
-    int nTaille = nH * nW;
+float interpolate(float q11, float q12, float q21, float q22, float x, float y) {
+    return q11 * (1 - x) * (1 - y) +
+           q12 * x * (1 - y) +
+           q21 * (1 - x) * y +
+           q22 * x * y;
+}
 
-    OCTET *ImgIn, *ImgOut;
-    allocation_tableau(ImgIn, OCTET, nTaille);
-    lire_image_pgm(cNomImgIndexed, ImgIn, nTaille);
-    allocation_tableau(ImgOut, OCTET, nTaille * 3);
+void resample_image_pgm(OCTET *ImgIn, OCTET *ImgOut, int nH, int nW, int nH2, int nW2) {
+    for (int i = 0; i < nH2; i++) {
+        for (int j = 0; j < nW2; j++) {
+            // Calcul des coordonnées dans l'image d'entrée
+            float x = (float)j * (nW - 1) / (nW2 - 1); // Position x dans l'image d'entrée
+            float y = (float)i * (nH - 1) / (nH2 - 1); // Position y dans l'image d'entrée
 
-    Vec3 palette[256];
+            int x1 = (int)x; // Coordonnée entière de gauche
+            int y1 = (int)y; // Coordonnée entière du haut
+            int x2 = (x1 + 1 < nW) ? x1 + 1 : x1; // Coordonnée entière de droite (limité au bord droit)
+            int y2 = (y1 + 1 < nH) ? y1 + 1 : y1; // Coordonnée entière du bas (limité au bord bas)
 
-    std::ifstream infile(cNomPalette);
-    if (infile.is_open()) {
-        std::cout << "Fichier ouvert avec succès : " << cNomPalette << std::endl;
-        std::string line;
-        if (infile.peek() == std::ifstream::traits_type::eof()) {
-            std::cerr << "Le fichier est vide." << std::endl;
-        } else {
-            while (std::getline(infile, line)) {
-                std::istringstream iss(line);
-                int index;
-                float r, g, b;
-                if (!(iss >> index >> r >> g >> b)) {
-                    std::cerr << "Erreur de lecture de la ligne : " << line << std::endl;
-                    continue;
-                }
-                palette[index] = Vec3(r, g, b);
-            }
+            // Valeurs des 4 pixels environnants (x1, y1), (x2, y1), (x1, y2), (x2, y2)
+            float q11 = ImgIn[y1 * nW + x1];
+            float q12 = ImgIn[y1 * nW + x2];
+            float q21 = ImgIn[y2 * nW + x1];
+            float q22 = ImgIn[y2 * nW + x2];
+
+            // Calcul des fractions pour l'interpolation
+            float x_frac = x - x1; // Fraction de la distance dans la direction x
+            float y_frac = y - y1; // Fraction de la distance dans la direction y
+
+            // Interpolation bilinéaire
+            ImgOut[i * nW2 + j] = (OCTET)(
+                q11 * (1 - x_frac) * (1 - y_frac) + 
+                q12 * x_frac * (1 - y_frac) + 
+                q21 * (1 - x_frac) * y_frac + 
+                q22 * x_frac * y_frac
+            );
         }
-    } else {
-        std::cerr << "Erreur lors de l'ouverture du fichier " << cNomPalette << std::endl;
     }
+}
 
+
+
+
+void ex3_tp2(char cNomImgLue[250], char cNomImgSortie[250]){
+
+    int nH, nW, nTaille;
+    int nTaille3;
+    
+    OCTET *ImgIn, *ImgOut, *PlanR, *PlanV, *PlanB;
+
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    nTaille3 = nTaille * 3;
+
+    allocation_tableau(ImgIn, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue, ImgIn, nTaille);
+
+    allocation_tableau(PlanR, OCTET, nTaille);
+    planR(PlanR, ImgIn, nTaille);
+
+    allocation_tableau(PlanV, OCTET, nTaille);
+    planV(PlanV, ImgIn, nTaille);
+
+    allocation_tableau(PlanB, OCTET, nTaille);
+    planB(PlanB, ImgIn, nTaille);
+
+    char R[] = "img_R.pgm";
+    char G[] = "img_G.pgm";
+    char B[] = "img_B.pgm";
+
+    ecrire_image_pgm(R, PlanR, nH, nW);
+    ecrire_image_pgm(G, PlanV, nH, nW);
+    ecrire_image_pgm(B, PlanB, nH, nW);
+
+    OCTET *ImgR_reduite, *ImgB_reduite;
+    allocation_tableau(ImgR_reduite, OCTET, nTaille/2);
+    allocation_tableau(ImgB_reduite, OCTET, nTaille/2);
+
+    reduce_image_pgm(PlanR, ImgR_reduite, nH, nW, 2);
+    reduce_image_pgm(PlanB, ImgB_reduite, nH, nW, 2);
+
+    OCTET *ImgR_re_sampled, *ImgB_re_sampled;
+    allocation_tableau(ImgR_re_sampled, OCTET, nTaille);
+    allocation_tableau(ImgB_re_sampled, OCTET, nTaille);
+
+
+    resample_image_pgm(ImgR_reduite, ImgR_re_sampled, nH/2 , nW/2, nH, nW);
+    resample_image_pgm( ImgB_reduite, ImgB_re_sampled, nH/2 , nW/2, nH, nW);
+
+    char RR[] = "R_resampled.pgm";
+    char GR[] = "B_resampled.pgm";
+
+    ecrire_image_pgm(RR, ImgR_re_sampled, nH, nW);
+    ecrire_image_pgm(GR, ImgB_re_sampled, nH, nW);
+
+    allocation_tableau(ImgOut, OCTET, nTaille3);
     for (int i = 0; i < nTaille; i++) {
-        int idx = ImgIn[i];
-        ImgOut[i * 3]     = (int)palette[idx].r;
-        ImgOut[i * 3 + 1] = (int)palette[idx].v;
-        ImgOut[i * 3 + 2] = (int)palette[idx].b;
+        ImgOut[i*3] = ImgR_re_sampled[i];
+        ImgOut[i*3+1] = PlanV[i];
+        ImgOut[i*3+2] = ImgB_re_sampled[i];
     }
 
     ecrire_image_ppm(cNomImgSortie, ImgOut, nH, nW);
+
+    free(ImgR_reduite);
+    free(ImgB_reduite);
+
+    free(ImgR_re_sampled);
+    free(ImgB_re_sampled);
+
+    free(ImgIn);
+    free(ImgOut);
+
+    free(PlanR);
+    free(PlanV);
+    free(PlanB);
+
+
 }
 
 
+void re_sample_ycbcr(char cNomImgLue[250], char cNomImgLue2[250], char cNomImgLue3[250]){
+
+    int nH, nW, nTaille;
+    
+    OCTET *ImgY, *ImgCb, * ImgCr;
+
+    OCTET *ImgYOut, *ImgCbOut, * ImgCrOut;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    // lectures de images
+
+    allocation_tableau(ImgY, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgY, nTaille);
+
+    allocation_tableau(ImgCb, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue2, ImgCb, nTaille);
+
+    allocation_tableau(ImgCr, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue3, ImgCr, nTaille);
+
+
+    //declaration images réduite
+
+    OCTET *ImgCb_reduite, *ImgCr_reduite;
+    allocation_tableau(ImgCb_reduite, OCTET, nTaille/2);
+    allocation_tableau(ImgCr_reduite, OCTET, nTaille/2);
+
+    reduce_image_pgm(ImgCb, ImgCb_reduite, nH, nW, 2);
+    reduce_image_pgm(ImgCr, ImgCr_reduite, nH, nW, 2);
+
+    // declaration image re sampled
+
+    OCTET *ImgCb_re_sampled, *ImgCr_re_sampled;
+    allocation_tableau(ImgCb_re_sampled, OCTET, nTaille);
+    allocation_tableau(ImgCr_re_sampled, OCTET, nTaille);
+
+    resample_image_pgm(ImgCb_reduite, ImgCb_re_sampled, nH/2 , nW/2, nH, nW);
+    resample_image_pgm(ImgCr_reduite, ImgCr_re_sampled, nH/2 , nW/2, nH, nW);
+
+    // ecriture out
+
+    allocation_tableau(ImgYOut, OCTET, nTaille);
+    allocation_tableau(ImgCbOut, OCTET, nTaille);
+    allocation_tableau(ImgCrOut, OCTET, nTaille);
+
+    for (int i = 0; i < nTaille; i++) {
+        ImgCbOut[i] = ImgCb_re_sampled[i];
+        ImgCrOut[i] = ImgCr_re_sampled[i];
+    }
+
+    ecrire_image_pgm(cNomImgLue2, ImgCbOut, nH, nW);
+    ecrire_image_pgm(cNomImgLue3, ImgCrOut, nH, nW);
+
+
+}
+
+
+/* void difference_map_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+
+    allocation_tableau(ImgOut, OCTET, nTaille);
+
+    ImgOut[0] = ImgIn[0];
+
+    for (int i = 1; i < nTaille; i++) {
+        if ( i % nW == 0 ){
+            ImgOut[i] = ImgIn[i] - ImgOut[i - nW] + 128;
+        }else {
+            ImgOut[i] = ImgIn[i] - ImgOut[i-1] + 128;
+        }
+    }
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+} */
+
+
+void entropie(char cNomImgLue[250]){
+    int nH, nW, nTaille;
+    OCTET *ImgIn;
+    
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+    
+    int histo[256] = {0};
+    for (int i = 0; i < nTaille; i++) {
+        histo[ImgIn[i]]++;
+    }
+    
+    double entropy = 0.0;
+    for (int i = 0; i < 256; i++) {
+        if (histo[i] > 0) {
+            double p = (double)histo[i] / nTaille;
+            entropy -= p * log2(p);
+        }
+    }
+    
+    printf("Entropie de l'image : %f\n", entropy);
+    
+    free(ImgIn);
+}
+
+
+void difference_map_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+    
+    allocation_tableau(ImgOut, OCTET, nTaille);
+
+    ImgOut[0] = ImgIn[0];
+
+    for (int i = 1; i < nTaille; i++) {
+        if ( i % nW == 0 ){
+            ImgOut[i] = ImgIn[i] - ImgIn[i - nW] + 128;
+            //std::cout<< "index : " << i << ", valeur : " << (int)ImgOut[i] << std::endl;
+        }else {
+            ImgOut[i] = ImgIn[i] - ImgIn[i-1] + 128;
+            //std::cout<< "index : " << i << ", valeur : " << (int)ImgOut[i] << std::endl;
+        }
+    }
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+}
