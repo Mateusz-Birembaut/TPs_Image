@@ -560,3 +560,4 @@ void difference_map_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
     ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
 
 }
+

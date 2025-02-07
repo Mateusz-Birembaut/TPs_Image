@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "image_ppm.h"
 #include "codage.h"
+#include "traitement.h"
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -85,6 +86,14 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         histogramme_ppm(argv[2], argv[3]);
+    } 
+
+    else if (strcmp(argv[1], "seuil_image_extrema_ppm") == 0) {
+        if (argc != 4) {
+            printf("Usage: %s histogrammePPM ImageIn.ppm ImageOut.ppm\n", argv[0]);
+            return 1;
+        }
+        seuil_image_extrema_ppm(argv[2], argv[3]);
     } 
     
     
@@ -354,7 +363,71 @@ int main(int argc, char* argv[]) {
             entropie(argv[2]);
         }
     } 
+
+    else if (strcmp(argv[1], "extension_hist_pgm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.pgm fichierOut.dat", argv[1]);
+            return 1;
+        } else {
+            extension_histogramme_pgm(argv[2], argv[3]);
+        }
+    } 
+
+    else if (strcmp(argv[1], "extension_hist_ppm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.ppm fichierOut.dat", argv[1]);
+            return 1;
+        } else {
+            extension_histogramme_ppm(argv[2], argv[3]);
+        }
+    } 
+
+    else if (strcmp(argv[1], "ddp_pgm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.pgm fichierOut.dat", argv[1]);
+            return 1;
+        } else {
+            ddp_pgm(argv[2], argv[3]);
+        }
+    } 
+
+    else if (strcmp(argv[1], "extension_img_pgm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.pgm ImgOut.pgm", argv[1]);
+            return 1;
+        } else {
+            extension_img_pgm(argv[2], argv[3]);
+        }
+    } 
+
+    else if (strcmp(argv[1], "extension_img_ppm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.ppm ImgOut.ppm", argv[1]);
+            return 1;
+        } else {
+            extension_img_ppm(argv[2], argv[3]);
+        }
+    } 
+
     
+    else if (strcmp(argv[1], "repartition_pgm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.ppm fichierOut.ppm", argv[1]);
+            return 1;
+        } else {
+            repartition_pgm(argv[2], argv[3]);
+        }
+    } 
+
+    else if (strcmp(argv[1], "egalisation_pgm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.ppm ImgOut.ppm", argv[1]);
+            return 1;
+        } else {
+            egalisation_pgm(argv[2], argv[3]);
+        }
+    } 
+
     else if (strcmp(argv[1], "help") == 0){
         printf("\nVoici la liste des fonctions disponibles :\n\n");
 
