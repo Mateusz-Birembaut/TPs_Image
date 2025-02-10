@@ -477,32 +477,7 @@ void re_sample_ycbcr(char cNomImgLue[250], char cNomImgLue2[250], char cNomImgLu
 }
 
 
-/* void difference_map_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
-    int nH, nW, nTaille;
-    OCTET *ImgIn, *ImgOut;
-
-    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
-    nTaille = nH * nW;
-
-    allocation_tableau(ImgIn, OCTET, nTaille);
-    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
-
-    allocation_tableau(ImgOut, OCTET, nTaille);
-
-    ImgOut[0] = ImgIn[0];
-
-    for (int i = 1; i < nTaille; i++) {
-        if ( i % nW == 0 ){
-            ImgOut[i] = ImgIn[i] - ImgOut[i - nW] + 128;
-        }else {
-            ImgOut[i] = ImgIn[i] - ImgOut[i-1] + 128;
-        }
-    }
-
-    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
-
-} */
-
+/* ---------------------------------------TP 3------------------------------- */
 
 void entropie(char cNomImgLue[250]){
     int nH, nW, nTaille;
@@ -550,10 +525,8 @@ void difference_map_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
     for (int i = 1; i < nTaille; i++) {
         if ( i % nW == 0 ){
             ImgOut[i] = ImgIn[i] - ImgIn[i - nW] + 128;
-            //std::cout<< "index : " << i << ", valeur : " << (int)ImgOut[i] << std::endl;
         }else {
             ImgOut[i] = ImgIn[i] - ImgIn[i-1] + 128;
-            //std::cout<< "index : " << i << ", valeur : " << (int)ImgOut[i] << std::endl;
         }
     }
 
@@ -561,3 +534,46 @@ void difference_map_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
 
 }
 
+
+void difference_map_pgm_alternate(char cNomImgLue[250], char cNomImgEcrite[250]) {
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+
+    allocation_tableau(ImgOut, OCTET, nTaille);
+
+    ImgOut[0] = ImgIn[0];
+    
+
+    for (int i = 1; i < nTaille; i++) {
+        int row = i / nW;   
+        int col = i % nW;   
+
+        if (row == 0) {
+            ImgOut[i] = ImgIn[i] - ImgIn[i - 1] + 128;
+        }
+        else if (col == 0) {
+            ImgOut[i] = ImgIn[i] - ImgIn[i - nW] + 128;
+        }
+        else {
+
+            int gauche   = ImgIn[i - 1];
+            int dessus   = ImgIn[i - nW];
+            int diagonal = ImgIn[i - nW - 1];
+
+            int prediction = gauche + dessus - diagonal;
+
+            ImgOut[i] = ImgIn[i] - prediction + 128;
+        }
+    }
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+    free(ImgIn);
+    free(ImgOut);
+}
