@@ -6,6 +6,7 @@
 #include "codage.h"
 #include "traitement.h"
 
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Usage: %s fonction [options]\n", argv[0]);
@@ -426,7 +427,25 @@ int main(int argc, char* argv[]) {
         } else {
             egalisation_pgm(argv[2], argv[3]);
         }
-    } 
+    }
+
+    else if (strcmp(argv[1], "transformee_ondelettes_pgm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.pgm ImgOut.pgm", argv[1]);
+            return 1;
+        } else {
+            transformee_ondelettes_pgm(argv[2], argv[3]);
+        }
+    }  
+
+    else if (strcmp(argv[1], "reconstruire_ondelettes_pgm") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.pgm ImgOut.pgm", argv[1]);
+            return 1;
+        } else {
+            reconstruire_ondelettes_pgm(argv[2], argv[3]);
+        }
+    }  
 
     else if (strcmp(argv[1], "help") == 0){
         printf("\nVoici la liste des fonctions disponibles :\n\n");

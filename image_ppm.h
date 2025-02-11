@@ -223,6 +223,8 @@ void lire_image_pgm(char  nom_image[], OCTET *pt_image, int taille_image)
 
 /*============================== utils =============================================*/
 
+
+
 int getValeurMoyenne(OCTET *image, int nW,int nH ,int ligne, int colonne,int rayon){
     int moyenne = 0;
     int nb_voisins = 0;

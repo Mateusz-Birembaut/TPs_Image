@@ -477,7 +477,32 @@ void re_sample_ycbcr(char cNomImgLue[250], char cNomImgLue2[250], char cNomImgLu
 }
 
 
-/* ---------------------------------------TP 3------------------------------- */
+/* void difference_map_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+
+    allocation_tableau(ImgOut, OCTET, nTaille);
+
+    ImgOut[0] = ImgIn[0];
+
+    for (int i = 1; i < nTaille; i++) {
+        if ( i % nW == 0 ){
+            ImgOut[i] = ImgIn[i] - ImgOut[i - nW] + 128;
+        }else {
+            ImgOut[i] = ImgIn[i] - ImgOut[i-1] + 128;
+        }
+    }
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+} */
+
 
 void entropie(char cNomImgLue[250]){
     int nH, nW, nTaille;
@@ -525,15 +550,16 @@ void difference_map_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
     for (int i = 1; i < nTaille; i++) {
         if ( i % nW == 0 ){
             ImgOut[i] = ImgIn[i] - ImgIn[i - nW] + 128;
+            //std::cout<< "index : " << i << ", valeur : " << (int)ImgOut[i] << std::endl;
         }else {
             ImgOut[i] = ImgIn[i] - ImgIn[i-1] + 128;
+            //std::cout<< "index : " << i << ", valeur : " << (int)ImgOut[i] << std::endl;
         }
     }
 
     ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
 
 }
-
 
 void difference_map_pgm_alternate(char cNomImgLue[250], char cNomImgEcrite[250]) {
     int nH, nW, nTaille;
@@ -577,3 +603,130 @@ void difference_map_pgm_alternate(char cNomImgLue[250], char cNomImgEcrite[250])
     free(ImgIn);
     free(ImgOut);
 }
+
+//-------------------------------TP 4-----------------------------------------
+
+
+void transformee_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]) {
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut, *ImgBF, *ImgMFh , *ImgMFv , *ImgHF ;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+    
+    allocation_tableau(ImgOut, OCTET, nTaille);
+
+    allocation_tableau(ImgBF, OCTET, nTaille/4);
+    allocation_tableau(ImgMFh, OCTET, nTaille/4);
+    allocation_tableau(ImgMFv, OCTET, nTaille/4);
+    allocation_tableau(ImgHF, OCTET, nTaille/4);
+
+
+    for (int i = 0; i < nH; i += 2) { 
+        for (int j = 0; j < nW; j += 2) {
+            
+            int idxA = i * nW + j;
+            int idxB = i * nW + (j + 1);
+            int idxC = (i + 1) * nW + j;
+            int idxD = (i + 1) * nW + (j + 1);
+
+
+            if (i + 1 >= nH) { idxC = idxA; idxD = idxB; } 
+            if (j + 1 >= nW) { idxB = idxA; idxD = idxC; }
+
+            int A = ImgIn[idxA];
+            int B = ImgIn[idxB];
+            int C = ImgIn[idxC];
+            int D = ImgIn[idxD];
+
+            int BF = (A + B + C + D) / 4;
+            int MFh = (A + B - C - D) / 2;
+            int MFv = (A - B + C - D) / 2;
+            int HF = A - B - C + D;
+
+
+            ImgOut[idxA] = BF;
+            ImgOut[idxB] = MFh;
+            ImgOut[idxC] = MFv;
+            ImgOut[idxD] = HF;
+
+            int index = (i / 2) * (nW/2) + (j / 2);
+            ImgBF[index]  = BF;
+            ImgMFh[index] = MFh;
+            ImgMFv[index] = MFv;
+            ImgHF[index]  = HF;
+
+        }
+    }
+
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+    ecrire_image_pgm("imgBF.pgm", ImgBF, nH/2, nW/2);
+    ecrire_image_pgm("ImgMFh.pgm", ImgMFh, nH/2, nW/2);
+    ecrire_image_pgm("ImgMFv.pgm", ImgMFv, nH/2, nW/2);
+    ecrire_image_pgm("ImgHF.pgm", ImgHF, nH/2, nW/2);
+
+
+    free(ImgIn);
+    free(ImgBF);
+    free(ImgMFh);
+    free(ImgMFv);
+    free(ImgHF);
+    free(ImgOut);
+}
+
+void reconstruire_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut, *ImgBF, *ImgMFh , *ImgMFv , *ImgHF ;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+    
+    allocation_tableau(ImgOut, OCTET, nTaille);
+
+    for (int i = 0; i < nH; i += 2) { 
+        for (int j = 0; j < nW; j += 2) {
+            
+            int idxA = i * nW + j;
+            int idxB = i * nW + (j + 1);
+            int idxC = (i + 1) * nW + j;
+            int idxD = (i + 1) * nW + (j + 1);
+
+            if (i + 1 >= nH) { idxC = idxA; idxD = idxB; } 
+            if (j + 1 >= nW) { idxB = idxA; idxD = idxC; }
+
+            int BF = ImgIn[idxA];
+            int MFh = ImgIn[idxB];
+            int MFv = ImgIn[idxC];
+            int HF = ImgIn[idxD];
+
+            int A = ;
+            int B =;
+            int C =;
+            int D =;
+
+            ImgOut[idxA] = A;
+            ImgOut[idxB] = B;
+            ImgOut[idxC] = C;
+            ImgOut[idxD] = D;
+
+        }
+    }
+
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+
+    free(ImgIn);
+    free(ImgOut);
+
+}
+
+
