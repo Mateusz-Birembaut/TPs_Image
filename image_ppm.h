@@ -475,6 +475,28 @@ void seuil_image_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int seuils[]
     free(ImgIn); free(ImgOut);
 }
 
+void seuil_image_pgm_spe(char cNomImgLue[250], char cNomImgEcrite[250], int seuil) {
+    int nH, nW, nTaille;
+
+    OCTET *ImgIn, *ImgOut;
+    
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+  
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+    allocation_tableau(ImgOut, OCTET, nTaille);
+
+    for (int i = 0; i < nH; i++) {
+        for (int j = 0; j < nW; j++) {
+            ImgOut[i * nW + j] = (ImgIn[i * nW + j] >= seuil) ? 255 : 0;
+        }
+    }
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+    free(ImgIn); free(ImgOut);
+}
+
 
 
 void seuil_image_ppm(char cNomImgLue[250], char cNomImgEcrite[250]) {

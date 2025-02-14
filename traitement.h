@@ -407,3 +407,201 @@ void seuil_image_extrema_ppm(char cNomImgLue[250], char cNomImgEcrite[250]) {
 }
 
 
+
+
+void RGBtoPGM(char cNomImgPPM[250], char cNomImgPGM[250]) {
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut;
+
+    lire_nb_lignes_colonnes_image_ppm(cNomImgPPM, &nH, &nW);
+    nTaille = nH * nW * 3;
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_ppm(cNomImgPPM, ImgIn, nH * nW);
+
+    allocation_tableau(ImgOut, OCTET, nH * nW); // Pour l'image en niveaux de gris
+
+    for (int i = 0; i < nH * nW; i++) {
+        int r = ImgIn[3*i];
+        int g = ImgIn[3*i+1];
+        int b = ImgIn[3*i+2];
+        ImgOut[i] = (OCTET)( r/3 + g/3 + b/3);
+    }
+
+    ecrire_image_pgm(cNomImgPGM, ImgOut, nH, nW);
+
+    free(ImgIn);
+    free(ImgOut);
+}
+
+
+void reduce_ppm(char cNomImgLue[250], char cNomImgSortie[250], int factor){
+    int nH, nW, nTaille;
+    int nTaille3;
+    
+    OCTET *ImgIn, *ImgOut, *PlanR, *PlanV, *PlanB;
+
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    nTaille3 = nTaille * 3;
+
+    allocation_tableau(ImgIn, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue, ImgIn, nTaille);
+
+    allocation_tableau(PlanR, OCTET, nTaille);
+    planR(PlanR, ImgIn, nTaille);
+
+    allocation_tableau(PlanV, OCTET, nTaille);
+    planV(PlanV, ImgIn, nTaille);
+
+    allocation_tableau(PlanB, OCTET, nTaille);
+    planB(PlanB, ImgIn, nTaille);
+
+    OCTET *ImgR_reduite, *ImgB_reduite, *ImgV_reduite;
+    allocation_tableau(ImgR_reduite, OCTET, nTaille/factor);
+    allocation_tableau(ImgV_reduite, OCTET, nTaille/factor);
+    allocation_tableau(ImgB_reduite, OCTET, nTaille/factor);
+
+    reduce_image_pgm(PlanR, ImgR_reduite, nH, nW, factor);
+    reduce_image_pgm(PlanV, ImgV_reduite, nH, nW, factor);
+    reduce_image_pgm(PlanB, ImgB_reduite, nH, nW, factor);
+
+
+    allocation_tableau(ImgOut, OCTET, nTaille3/factor);
+
+    for (int i = 0; i < nTaille/factor; i++) {
+        ImgOut[i*3] = ImgR_reduite[i];
+        ImgOut[i*3+1] = ImgV_reduite[i];
+        ImgOut[i*3+2] = ImgB_reduite[i];
+    }
+
+    ecrire_image_ppm(cNomImgSortie, ImgOut, nH/factor, nW/factor);
+
+    free(ImgR_reduite);
+    free(ImgV_reduite);
+    free(ImgB_reduite);
+
+    free(ImgIn);
+    free(ImgOut);
+
+    free(PlanR);
+    free(PlanV);
+    free(PlanB);
+
+
+}
+
+void flouter_image_backgroud(OCTET *pt_image, OCTET *pt_imageSeuille, int nH, int nW, int rayon){
+    int nTaille;
+
+    OCTET *ImgOut;
+
+    nTaille = nH * nW;
+    allocation_tableau(ImgOut, OCTET, nTaille);
+
+    for (int i=0; i < nH; i++){
+        for (int j=0; j < nW; j++){
+            if (pt_imageSeuille[i*nW+j] == 0 ) {
+                ImgOut[i*nW+j] = getValeurMoyenne(pt_image,nW, nH,i,j, rayon);
+            }else {
+                ImgOut[i*nW+j] = pt_image[i*nW+j];
+            }
+
+        }
+    }
+    for (int i = 0; i < nTaille; i++){
+        pt_image[i] = ImgOut[i];
+    }
+
+    free(ImgOut);
+
+}
+
+
+void flouter_background_ppm(char cNomImgLue[250], char cNomImgSeuille[256], char cNomImgEcrite[250], int rayon) {
+    int nH, nW, nTaille;
+
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    int nTaille3 = nTaille * 3;
+
+    OCTET *ImgIn, *ImgInSeuille, *ImgOut, *PlanR, *PlanV, *PlanB;
+
+    allocation_tableau(ImgIn, OCTET, nTaille3);
+    lire_image_ppm(cNomImgLue, ImgIn, nH * nW);
+
+    allocation_tableau(ImgInSeuille, OCTET, nTaille);
+    lire_image_pgm(cNomImgSeuille, ImgInSeuille, nH * nW);
+
+    allocation_tableau(PlanR, OCTET, nTaille);
+    planR(PlanR, ImgIn, nTaille);
+
+    allocation_tableau(PlanV, OCTET, nTaille);
+    planV(PlanV, ImgIn, nTaille);
+
+    allocation_tableau(PlanB, OCTET, nTaille);
+    planB(PlanB, ImgIn, nTaille);
+
+    flouter_image_backgroud(PlanR, ImgInSeuille, nH, nW, rayon);
+    flouter_image_backgroud(PlanV, ImgInSeuille, nH, nW, rayon);
+    flouter_image_backgroud(PlanB, ImgInSeuille, nH, nW, rayon);
+
+    allocation_tableau(ImgOut, OCTET, nTaille3);
+    for (int i = 0; i < nTaille; i++) {
+        ImgOut[i*3] = PlanR[i];
+        ImgOut[i*3+1] = PlanV[i];
+        ImgOut[i*3+2] = PlanB[i];
+    }
+
+    ecrire_image_ppm(cNomImgEcrite, ImgOut,  nH, nW);
+
+    free(ImgIn); free(ImgOut); free(PlanR); free(PlanV); free(PlanB);
+}
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+void roc(char cNomImgLue[250], char cNomImgReference[256], char cNomFichierEcrit[250], int number) {
+    int step = number / 255;
+    FILE *f = fopen(cNomFichierEcrit, "w");
+    if (!f) {
+        perror("Erreur ouverture fichier");
+        return;
+    }
+    
+    int nH, nW, nTaille;
+    lire_nb_lignes_colonnes_image_pgm(cNomImgReference, &nH, &nW);
+    nTaille = nH * nW;
+    
+    OCTET *ImgRef;
+    allocation_tableau(ImgRef, OCTET, nTaille);
+    lire_image_pgm(cNomImgReference, ImgRef, nTaille);
+    
+    for (int i = 0; i < number; i++) {
+        char temp[256] = "tempS.pgm";
+        seuil_image_pgm_spe(cNomImgLue, temp, i * step);
+        
+        int vraiPositifs = 0, fauxPositifs = 0, vraiNegatifs = 0, fauxNegatifs = 0;
+        
+        OCTET *ImgThresh;
+        allocation_tableau(ImgThresh, OCTET, nTaille);
+        lire_image_pgm(temp, ImgThresh, nTaille);
+        
+        for (int j = 0; j < nTaille; j++) {
+            if (ImgThresh[j] == 255 && ImgRef[j] == 255) vraiPositifs++;
+            else if (ImgThresh[j] == 255 && ImgRef[j] == 0) fauxPositifs++;
+            else if (ImgThresh[j] == 0 && ImgRef[j] == 0) vraiNegatifs++;
+            else if (ImgThresh[j] == 0 && ImgRef[j] == 255) fauxNegatifs++;
+        }
+        
+        fprintf(f, "%d %d %d %d %d\n", i * step, vraiPositifs, fauxPositifs, vraiNegatifs, fauxNegatifs);
+        
+        free(ImgThresh);
+    }
+    
+    free(ImgRef);
+    fclose(f);
+}
+
+

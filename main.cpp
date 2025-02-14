@@ -443,7 +443,43 @@ int main(int argc, char* argv[]) {
             printf("Usage: %s ImageIn.pgm ImgOut.pgm", argv[1]);
             return 1;
         } else {
-            reconstruire_ondelettes_pgm(argv[2], argv[3]);
+            //reconstruire_ondelettes_pgm(argv[2], argv[3]);
+        }
+    }  
+
+    else if (strcmp(argv[1], "reduce_ppm") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.ppm ImgOut.pgm factor", argv[1]);
+            return 1;
+        } else {
+            reduce_ppm(argv[2], argv[3], atoi(argv[4]));
+        }
+    }  
+
+    else if (strcmp(argv[1], "RGBtoPGM") == 0 ) {
+        if (argc != 4) {
+            printf("Usage: %s ImageIn.ppm ImgOut.pgm", argv[1]);
+            return 1;
+        } else {
+            RGBtoPGM(argv[2], argv[3]);
+        }
+    }  
+
+    else if (strcmp(argv[1], "flouter_background_ppm") == 0 ) {
+        if (argc != 6) {
+            printf("Usage: %s ImageOriginale.ppm ImgSeuillé.pgm imgOut.ppm rayonFlou", argv[1]);
+            return 1;
+        } else {
+            flouter_background_ppm(argv[2], argv[3], argv[4], atoi(argv[5]));
+        }
+    }  
+
+    else if (strcmp(argv[1], "roc") == 0 ) {
+        if (argc != 6) {
+            printf("Usage: %s ImageOriginale.pgm ImgSeuilléReference.pgm fichier.dat nbDeSeuils", argv[1]);
+            return 1;
+        } else {
+            roc(argv[2], argv[3], argv[4], atoi(argv[5]));
         }
     }  
 

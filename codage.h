@@ -574,7 +574,6 @@ void difference_map_pgm_alternate(char cNomImgLue[250], char cNomImgEcrite[250])
     allocation_tableau(ImgOut, OCTET, nTaille);
 
     ImgOut[0] = ImgIn[0];
-    
 
     for (int i = 1; i < nTaille; i++) {
         int row = i / nW;   
@@ -624,7 +623,6 @@ void transformee_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]) {
     allocation_tableau(ImgMFv, OCTET, nTaille/4);
     allocation_tableau(ImgHF, OCTET, nTaille/4);
 
-
     for (int i = 0; i < nH; i += 2) { 
         for (int j = 0; j < nW; j += 2) {
             
@@ -662,14 +660,12 @@ void transformee_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]) {
         }
     }
 
-
     ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
 
     ecrire_image_pgm("imgBF.pgm", ImgBF, nH/2, nW/2);
     ecrire_image_pgm("ImgMFh.pgm", ImgMFh, nH/2, nW/2);
     ecrire_image_pgm("ImgMFv.pgm", ImgMFv, nH/2, nW/2);
     ecrire_image_pgm("ImgHF.pgm", ImgHF, nH/2, nW/2);
-
 
     free(ImgIn);
     free(ImgBF);
@@ -679,7 +675,7 @@ void transformee_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]) {
     free(ImgOut);
 }
 
-void reconstruire_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
+/* void reconstruire_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
     int nH, nW, nTaille;
     OCTET *ImgIn, *ImgOut, *ImgBF, *ImgMFh , *ImgMFv , *ImgHF ;
 
@@ -708,9 +704,9 @@ void reconstruire_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
             int HF = ImgIn[idxD];
 
             int A = ;
-            int B =;
-            int C =;
-            int D =;
+            int B = ;
+            int C = ;
+            int D = ;
 
             ImgOut[idxA] = A;
             ImgOut[idxB] = B;
@@ -720,13 +716,11 @@ void reconstruire_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
         }
     }
 
-
     ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
-
 
     free(ImgIn);
     free(ImgOut);
 
 }
-
+ */
 
