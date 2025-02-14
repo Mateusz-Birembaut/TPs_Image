@@ -559,11 +559,8 @@ void flouter_background_ppm(char cNomImgLue[250], char cNomImgSeuille[256], char
 }
 
 
-#include <stdio.h>
-#include <stdlib.h>
-
 void roc(char cNomImgLue[250], char cNomImgReference[256], char cNomFichierEcrit[250], int number) {
-    int step = number / 255;
+    float step = 255.0f / number;
     FILE *f = fopen(cNomFichierEcrit, "w");
     if (!f) {
         perror("Erreur ouverture fichier");
@@ -571,16 +568,17 @@ void roc(char cNomImgLue[250], char cNomImgReference[256], char cNomFichierEcrit
     }
     
     int nH, nW, nTaille;
-    lire_nb_lignes_colonnes_image_pgm(cNomImgReference, &nH, &nW);
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
     nTaille = nH * nW;
     
     OCTET *ImgRef;
     allocation_tableau(ImgRef, OCTET, nTaille);
+    // image seuillé de référence
     lire_image_pgm(cNomImgReference, ImgRef, nTaille);
     
     for (int i = 0; i < number; i++) {
         char temp[256] = "tempS.pgm";
-        seuil_image_pgm_spe(cNomImgLue, temp, i * step);
+        seuil_image_pgm_spe(cNomImgLue, temp, (int)(i * step));
         
         int vraiPositifs = 0, fauxPositifs = 0, vraiNegatifs = 0, fauxNegatifs = 0;
         
@@ -595,7 +593,8 @@ void roc(char cNomImgLue[250], char cNomImgReference[256], char cNomFichierEcrit
             else if (ImgThresh[j] == 0 && ImgRef[j] == 255) fauxNegatifs++;
         }
         
-        fprintf(f, "%d %d %d %d %d\n", i * step, vraiPositifs, fauxPositifs, vraiNegatifs, fauxNegatifs);
+        //fprintf(f, "%d %d %d %d %d\n", (int)(i * step), vraiPositifs, fauxPositifs, vraiNegatifs, fauxNegatifs);
+        fprintf(f, "%d %f %f\n", (int)(i * step), (float)vraiPositifs / (vraiPositifs + fauxNegatifs), 1.0f - (float)vraiNegatifs / (vraiNegatifs + fauxPositifs));
         
         free(ImgThresh);
     }
