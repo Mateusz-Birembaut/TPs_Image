@@ -246,14 +246,23 @@ int main(int argc, char* argv[]) {
         }
     
     }
-    else if (strcmp(argv[1], "psnr") == 0 ) {
+    else if (strcmp(argv[1], "psnr_ppm") == 0 ) {
 
         if (argc != 4) {
             printf("Usage: %s %s ImageOriginale.ppm ImageModifie.ppm \n", argv[0], argv[1]);
         }else {
-            PSNR(argv[2], argv[3]);
+            PSNR_PPM(argv[2], argv[3]);
         }
     }
+    else if (strcmp(argv[1], "psnr_pgm") == 0 ) {
+
+        if (argc != 4) {
+            printf("Usage: %s %s ImageOriginale.ppm ImageModifie.ppm \n", argv[0], argv[1]);
+        }else {
+            PSNR_PGM(argv[2], argv[3]);
+        }
+    }
+
 
     else if (strcmp(argv[1], "ex3_tp2") == 0 ) {
 
@@ -438,12 +447,30 @@ int main(int argc, char* argv[]) {
         }
     }  
 
+    else if (strcmp(argv[1], "transformee_ondelettes_recursive_pgm") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.pgm ImgOut.pgm nbRecursions", argv[1]);
+            return 1;
+        } else {
+            transformee_ondelettes_recursive_pgm(argv[2], argv[3], atoi(argv[4]));
+        }
+    }  
+
     else if (strcmp(argv[1], "reconstruire_ondelettes_pgm") == 0 ) {
         if (argc != 4) {
             printf("Usage: %s ImageIn.pgm ImgOut.pgm", argv[1]);
             return 1;
         } else {
-            //reconstruire_ondelettes_pgm(argv[2], argv[3]);
+            reconstruire_ondelettes_pgm(argv[2], argv[3]);
+        }
+    }  
+
+    else if (strcmp(argv[1], "reconstruire_ondelettes_recursive_pgm") == 0 ) {
+        if (argc != 5) {
+            printf("Usage: %s ImageIn.pgm ImgOut.pgm", argv[1]);
+            return 1;
+        } else {
+            reconstruire_ondelettes_recursive_pgm(argv[2], argv[3], atoi(argv[4]));
         }
     }  
 
@@ -481,7 +508,62 @@ int main(int argc, char* argv[]) {
         } else {
             roc(argv[2], argv[3], argv[4], atoi(argv[5]));
         }
-    }  
+    } 
+    
+    else if (strcmp(argv[1], "calculer_metrics") == 0 ) {
+        if (argc != 6) {
+            printf("Usage: %s ImageOriginale.pgm ImgSeuilléReference.pgm fichier.dat nbDeSeuils", argv[1]);
+            return 1;
+        } else {
+            calculer_metrics(argv[2], argv[3], argv[4], atoi(argv[5]));
+        }
+    } 
+
+    else if (strcmp(argv[1], "analyse_ondelettes") == 0 ) {
+        if (argc != 3) {
+            printf("Usage: %s ImageIn.pgm", argv[1]);
+            return 1;
+        } else {
+            analyse_ondelettes_multi_niveaux(argv[2]);
+        }
+    }
+
+    else if (strcmp(argv[1], "ondelettes_quantifiees") == 0) {
+        if (argc != 8) {
+            printf("Usage: %s ondelettes_quantifiees image.pgm image_out.pgm QBF QMFh QMFv QHF\n", argv[0]);
+            return 1;
+        }
+        transformee_ondelettes_quantifiee_pgm(argv[2], argv[3], 
+                                            atoi(argv[4]), atoi(argv[5]), 
+                                            atoi(argv[6]), atoi(argv[7]));
+    }
+
+    else if (strcmp(argv[1], "analyse_ondelettes_quantifiees") == 0) {
+        if (argc != 7) {
+            printf("Usage: %s analyse_ondelettes_quantifiees image.pgm QBF QMFh QMFv QHF\n", argv[0]);
+            return 1;
+        }
+        analyse_ondelettes_quantifiees_multi_niveaux(argv[2], 
+                                                    atoi(argv[3]), atoi(argv[4]), 
+                                                    atoi(argv[5]), atoi(argv[6]));
+    }
+
+
+    else if (strcmp(argv[1], "debit_distorsion") == 0) {
+        if (argc != 3) {
+            printf("Usage: %s debit_distorsion image.pgm\n", argv[0]);
+            return 1;
+        }
+        analyse_debit_distorsion(argv[2]);
+    }
+
+    else if (strcmp(argv[1], "debit_distorsion_ppm") == 0) {
+        if (argc != 3) {
+            printf("Usage: %s debit_distorsion_ppm image.ppm\n", argv[0]);
+            return 1;
+        }
+        analyse_debit_distorsion_ppm(argv[2]);
+    }
 
     else if (strcmp(argv[1], "help") == 0){
         printf("\nVoici la liste des fonctions disponibles :\n\n");

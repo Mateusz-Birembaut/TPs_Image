@@ -3,3 +3,7 @@
 *.dat
 *.png
 *.huff
+.vscode/
+*.vscode/
+*.vscode/*
+env/

@@ -1272,6 +1272,7 @@ double calculerEQM(char cNomImgPGM1[250], char cNomImgPGM2[250]) {
     return eqm;
 }
 
+
 void RGBtoYCbCr(char cNomImgPPM[250]) {
     int nH, nW, nTaille;
     OCTET *ImgIn, *ImgY, *ImgCb, *ImgCr;

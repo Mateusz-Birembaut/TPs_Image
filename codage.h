@@ -2,6 +2,9 @@
 #include <math.h>
 #include <vector>
 #include <iostream>
+#include <sys/stat.h>  // Pour struct stat
+#include <unistd.h>    // Pour stat()
+
 
 // c1 : 9;68;84
 // c2 : 253;186;12
@@ -251,7 +254,7 @@ void k_mean_256(char cNomImgLue[250], char cNomImgEcrite[250]) {
     ecrire_image_ppm(cNomImgEcrite, ImgOut, nH, nW);
 }
 
-void PSNR (char cNomImgLue[250], char cNomImgLue2[250]){
+void PSNR_PPM (char cNomImgLue[250], char cNomImgLue2[250]){
     int nH, nW, nTaille;
 
     OCTET *ImgOriginal, *ImgModifiee;
@@ -284,6 +287,37 @@ void PSNR (char cNomImgLue[250], char cNomImgLue2[250]){
 
 
 }
+
+void PSNR_PGM (char cNomImgLue[250], char cNomImgLue2[250]){
+    int nH, nW, nTaille;
+
+    OCTET *ImgOriginal, *ImgModifiee;
+    
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+  
+    allocation_tableau(ImgOriginal, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgOriginal, nH * nW);
+
+    allocation_tableau(ImgModifiee, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue2, ImgModifiee, nH * nW);
+
+
+    float eqm = 0.0;
+
+    for (int i = 0; i < nTaille; i += 3) {
+        int diff = ImgOriginal[i] - ImgModifiee[i];
+        eqm += diff * diff;
+    }
+
+    eqm /= nTaille; 
+    std::cout << " EQM : " << eqm << std::endl;
+    
+    float pnsr = 10* log10(pow(255,2) / eqm);
+    std::cout << " PNSR : " << pnsr  << " dB " << std::endl;
+
+}
+
 
 void reduce_image_pgm(OCTET *ImgIn, OCTET *ImgOut, int nH, int nW, int reduction) {
     int nH2 = nH / reduction; 
@@ -623,49 +657,37 @@ void transformee_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]) {
     allocation_tableau(ImgMFv, OCTET, nTaille/4);
     allocation_tableau(ImgHF, OCTET, nTaille/4);
 
-    for (int i = 0; i < nH; i += 2) { 
-        for (int j = 0; j < nW; j += 2) {
-            
-            int idxA = i * nW + j;
-            int idxB = i * nW + (j + 1);
-            int idxC = (i + 1) * nW + j;
-            int idxD = (i + 1) * nW + (j + 1);
+    for (int i = 0; i < nH / 2; i++) {
+        for (int j = 0; j < nW / 2; j++) {
+            int A = ImgIn[(i * 2) * nW + (j * 2)];
+            int C = ImgIn[((i * 2) + 1) * nW + (j * 2)];
+            int B = ImgIn[(i * 2) * nW + ((j * 2) + 1)];
+            int D = ImgIn[((i * 2) + 1) * nW + ((j * 2) + 1)];
 
+            ImgBF[i * (nW / 2) + j] = std::min(std::max((A + B + C + D) / 4, 0), 255);
+            ImgMFh[i * (nW / 2) + j] = std::min(std::max((A + B - C - D) / 2 + 128, 0), 255);
+            ImgMFv[i * (nW / 2) + j] = std::min(std::max((A - B + C - D) / 2 + 128, 0), 255);
+            ImgHF[i * (nW / 2) + j] = std::min(std::max((A - B - C + D) + 128, 0), 255);
 
-            if (i + 1 >= nH) { idxC = idxA; idxD = idxB; } 
-            if (j + 1 >= nW) { idxB = idxA; idxD = idxC; }
-
-            int A = ImgIn[idxA];
-            int B = ImgIn[idxB];
-            int C = ImgIn[idxC];
-            int D = ImgIn[idxD];
-
-            int BF = (A + B + C + D) / 4;
-            int MFh = (A + B - C - D) / 2;
-            int MFv = (A - B + C - D) / 2;
-            int HF = A - B - C + D;
-
-
-            ImgOut[idxA] = BF;
-            ImgOut[idxB] = MFh;
-            ImgOut[idxC] = MFv;
-            ImgOut[idxD] = HF;
-
-            int index = (i / 2) * (nW/2) + (j / 2);
-            ImgBF[index]  = BF;
-            ImgMFh[index] = MFh;
-            ImgMFv[index] = MFv;
-            ImgHF[index]  = HF;
+            ImgOut[(i * 2) * nW + (j * 2)] = ImgBF[i * (nW / 2) + j];
+            ImgOut[(i * 2) * nW + ((j * 2) + 1)] = ImgMFh[i * (nW / 2) + j];
+            ImgOut[((i * 2) + 1) * nW + (j * 2)] = ImgMFv[i * (nW / 2) + j];
+            ImgOut[((i * 2) + 1) * nW + ((j * 2) + 1)] = ImgHF[i * (nW / 2) + j];
 
         }
     }
 
-    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+    char cNomImgBF[] = "imgBF.pgm";
+    char cNomImgMFh[] = "ImgMFh.pgm";
+    char cNomImgMFv[] = "ImgMFv.pgm";
+    char cNomImgHF[] = "ImgHF.pgm";
 
-    ecrire_image_pgm("imgBF.pgm", ImgBF, nH/2, nW/2);
-    ecrire_image_pgm("ImgMFh.pgm", ImgMFh, nH/2, nW/2);
-    ecrire_image_pgm("ImgMFv.pgm", ImgMFv, nH/2, nW/2);
-    ecrire_image_pgm("ImgHF.pgm", ImgHF, nH/2, nW/2);
+    ecrire_image_pgm(cNomImgBF, ImgBF, nH/2, nW/2);
+    ecrire_image_pgm(cNomImgMFh, ImgMFh, nH/2, nW/2);
+    ecrire_image_pgm(cNomImgMFv, ImgMFv, nH/2, nW/2);
+    ecrire_image_pgm(cNomImgHF, ImgHF, nH/2, nW/2);
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
 
     free(ImgIn);
     free(ImgBF);
@@ -675,7 +697,85 @@ void transformee_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]) {
     free(ImgOut);
 }
 
-/* void reconstruire_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]){
+void reconstruire_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]) {
+    int nH, nW, nTaille;
+    // Lire la taille de l'image (la version transformée a la même taille que l'image d'origine)
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    // Dimensions des sous-images (ondelettes)
+    int nH_sub = nH / 2, nW_sub = nW / 2;
+    int subTaille = nH_sub * nW_sub;
+
+    // Allocation et lecture de l'image contenant les sous-bandes
+    OCTET *ImgIn, *ImgOut;
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+
+    // Allocation des sous-bandes
+    OCTET *ImgBF, *ImgMFh, *ImgMFv, *ImgHF;
+    allocation_tableau(ImgBF, OCTET, subTaille);
+    allocation_tableau(ImgMFh, OCTET, subTaille);
+    allocation_tableau(ImgMFv, OCTET, subTaille);
+    allocation_tableau(ImgHF, OCTET, subTaille);
+
+    // Extraction des sous-bandes de l'image lue
+    for (int i = 0; i < nH_sub; i++) {
+        for (int j = 0; j < nW_sub; j++) {
+            ImgBF[i * nW_sub + j] = ImgIn[(i * 2) * nW + (j * 2)];
+            ImgMFh[i * nW_sub + j] = ImgIn[(i * 2) * nW + ((j * 2) + 1)];
+            ImgMFv[i * nW_sub + j] = ImgIn[((i * 2) + 1) * nW + (j * 2)];
+            ImgHF[i * nW_sub + j] = ImgIn[((i * 2) + 1) * nW + ((j * 2) + 1)];
+        }
+    }
+
+    // Allocation de l'image reconstruite
+    allocation_tableau(ImgOut, OCTET, nTaille);
+
+    // Pour chaque bloc 2x2 dans l'image d'origine
+    for (int i = 0; i < nH_sub; i++) {
+        for (int j = 0; j < nW_sub; j++) {
+            int idx = i * nW_sub + j;
+            // Récupération des coefficients
+            float BF = ImgBF[idx];
+            float MFh = ImgMFh[idx];
+            float MFv = ImgMFv[idx];
+            float HF  = ImgHF[idx];
+            
+            // Calcul des pixels A, B, C, D du bloc 2x2
+            float A = BF + 0.5f * (MFh - 128) + 0.5f * (MFv - 128) + 0.25f * (HF - 128);
+            float B = BF + 0.5f * (MFh - 128) - 0.5f * (MFv - 128) - 0.25f * (HF - 128);
+            float C = BF - 0.5f * (MFh - 128) + 0.5f * (MFv - 128) - 0.25f * (HF - 128);
+            float D = BF - 0.5f * (MFh - 128) - 0.5f * (MFv - 128) + 0.25f * (HF - 128);
+            
+            // Clamper les valeurs dans [0,255]
+            int pixA = std::min(std::max((int)round(A), 0), 255);
+            int pixB = std::min(std::max((int)round(B), 0), 255);
+            int pixC = std::min(std::max((int)round(C), 0), 255);
+            int pixD = std::min(std::max((int)round(D), 0), 255);
+            
+            // Placer les pixels dans l'image de sortie
+            ImgOut[(2 * i) * nW + (2 * j)]         = pixA;
+            ImgOut[(2 * i) * nW + (2 * j + 1)]     = pixB;
+            ImgOut[(2 * i + 1) * nW + (2 * j)]     = pixC;
+            ImgOut[(2 * i + 1) * nW + (2 * j + 1)] = pixD;
+        }
+    }
+    
+    // Ecriture de l'image reconstruite
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+    
+    // Libération de la mémoire
+    free(ImgIn);
+    free(ImgBF);
+    free(ImgMFh);
+    free(ImgMFv);
+    free(ImgHF);
+    free(ImgOut);
+}
+
+
+void transformee_ondelettes_recursive_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int niveauMax, int niveau=0) {
     int nH, nW, nTaille;
     OCTET *ImgIn, *ImgOut, *ImgBF, *ImgMFh , *ImgMFv , *ImgHF ;
 
@@ -687,40 +787,645 @@ void transformee_ondelettes_pgm(char cNomImgLue[250], char cNomImgEcrite[250]) {
     
     allocation_tableau(ImgOut, OCTET, nTaille);
 
-    for (int i = 0; i < nH; i += 2) { 
-        for (int j = 0; j < nW; j += 2) {
-            
-            int idxA = i * nW + j;
-            int idxB = i * nW + (j + 1);
-            int idxC = (i + 1) * nW + j;
-            int idxD = (i + 1) * nW + (j + 1);
+    allocation_tableau(ImgBF, OCTET, nTaille/4);
+    allocation_tableau(ImgMFh, OCTET, nTaille/4);
+    allocation_tableau(ImgMFv, OCTET, nTaille/4);
+    allocation_tableau(ImgHF, OCTET, nTaille/4);
 
-            if (i + 1 >= nH) { idxC = idxA; idxD = idxB; } 
-            if (j + 1 >= nW) { idxB = idxA; idxD = idxC; }
+    for (int i = 0; i < nH / 2; i++) {
+        for (int j = 0; j < nW / 2; j++) {
+            int A = ImgIn[(i * 2) * nW + (j * 2)];
+            int C = ImgIn[((i * 2) + 1) * nW + (j * 2)];
+            int B = ImgIn[(i * 2) * nW + ((j * 2) + 1)];
+            int D = ImgIn[((i * 2) + 1) * nW + ((j * 2) + 1)];
 
-            int BF = ImgIn[idxA];
-            int MFh = ImgIn[idxB];
-            int MFv = ImgIn[idxC];
-            int HF = ImgIn[idxD];
+            ImgBF[i * (nW / 2) + j] = std::min(std::max((A + B + C + D) / 4, 0), 255);
+            ImgMFh[i * (nW / 2) + j] = std::min(std::max((A + B - C - D) / 2 + 128, 0), 255);
+            ImgMFv[i * (nW / 2) + j] = std::min(std::max((A - B + C - D) / 2 + 128, 0), 255);
+            ImgHF[i * (nW / 2) + j] = std::min(std::max((A - B - C + D) + 128, 0), 255);
 
-            int A = ;
-            int B = ;
-            int C = ;
-            int D = ;
-
-            ImgOut[idxA] = A;
-            ImgOut[idxB] = B;
-            ImgOut[idxC] = C;
-            ImgOut[idxD] = D;
-
+            ImgOut[(i * 2) * nW + (j * 2)] = ImgBF[i * (nW / 2) + j];
+            ImgOut[(i * 2) * nW + ((j * 2) + 1)] = ImgMFh[i * (nW / 2) + j];
+            ImgOut[((i * 2) + 1) * nW + (j * 2)] = ImgMFv[i * (nW / 2) + j];
+            ImgOut[((i * 2) + 1) * nW + ((j * 2) + 1)] = ImgHF[i * (nW / 2) + j];
         }
     }
 
     ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
 
     free(ImgIn);
-    free(ImgOut);
+    free(ImgMFh);
+    free(ImgMFv);
+    free(ImgHF);
 
+    if (niveau < niveauMax) {
+        std::string cNomImgBF_str = std::to_string(niveauMax - niveau) + ".pgm";
+        char cNomImgBF[250];
+        strcpy(cNomImgBF, cNomImgBF_str.c_str());
+        ecrire_image_pgm(cNomImgBF, ImgBF, nH/2, nW/2);
+        transformee_ondelettes_recursive_pgm(cNomImgBF, cNomImgBF, niveauMax, niveau+1);
+    }
+
+    free(ImgBF);
+    free(ImgOut);
 }
- */
+
+void reconstruire_ondelettes_recursive_pgm(char cNomImgLue[250], char cNomImgEcrite[250], int niveauMax, int niveau=0) {
+    int nH, nW, nTaille;
+    
+    // Si on n'est pas au niveau le plus profond, on commence par reconstruire ce niveau
+    if (niveau < niveauMax) {
+        std::string cNomImgBF_str = std::to_string(niveauMax - niveau) + ".pgm";
+        char cNomImgBF[250];
+        strcpy(cNomImgBF, cNomImgBF_str.c_str());
+        reconstruire_ondelettes_recursive_pgm(cNomImgBF, cNomImgBF, niveauMax, niveau + 1);
+    }
+
+    // Lecture de l'image du niveau courant
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    int nH_sub = nH / 2, nW_sub = nW / 2;
+    int subTaille = nH_sub * nW_sub;
+
+    // Allocation des tableaux
+    OCTET *ImgIn, *ImgOut;
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+
+    OCTET *ImgBF, *ImgMFh, *ImgMFv, *ImgHF;
+    allocation_tableau(ImgBF, OCTET, subTaille);
+    allocation_tableau(ImgMFh, OCTET, subTaille);
+    allocation_tableau(ImgMFv, OCTET, subTaille);
+    allocation_tableau(ImgHF, OCTET, subTaille);
+
+    // Extraction des sous-bandes
+    for (int i = 0; i < nH_sub; i++) {
+        for (int j = 0; j < nW_sub; j++) {
+            ImgBF[i * nW_sub + j] = ImgIn[(i * 2) * nW + (j * 2)];
+            ImgMFh[i * nW_sub + j] = ImgIn[(i * 2) * nW + ((j * 2) + 1)];
+            ImgMFv[i * nW_sub + j] = ImgIn[((i * 2) + 1) * nW + (j * 2)];
+            ImgHF[i * nW_sub + j] = ImgIn[((i * 2) + 1) * nW + ((j * 2) + 1)];
+        }
+    }
+
+    // Reconstruction
+    allocation_tableau(ImgOut, OCTET, nTaille);
+    for (int i = 0; i < nH_sub; i++) {
+        for (int j = 0; j < nW_sub; j++) {
+            float BF = ImgBF[i * nW_sub + j];
+            float MFh = ImgMFh[i * nW_sub + j];
+            float MFv = ImgMFv[i * nW_sub + j];
+            float HF = ImgHF[i * nW_sub + j];
+
+            float A = BF + 0.5f * (MFh - 128) + 0.5f * (MFv - 128) + 0.25f * (HF - 128);
+            float B = BF + 0.5f * (MFh - 128) - 0.5f * (MFv - 128) - 0.25f * (HF - 128);
+            float C = BF - 0.5f * (MFh - 128) + 0.5f * (MFv - 128) - 0.25f * (HF - 128);
+            float D = BF - 0.5f * (MFh - 128) - 0.5f * (MFv - 128) + 0.25f * (HF - 128);
+
+            ImgOut[(2 * i) * nW + (2 * j)] = std::min(std::max((int)round(A), 0), 255);
+            ImgOut[(2 * i) * nW + (2 * j + 1)] = std::min(std::max((int)round(B), 0), 255);
+            ImgOut[(2 * i + 1) * nW + (2 * j)] = std::min(std::max((int)round(C), 0), 255);
+            ImgOut[(2 * i + 1) * nW + (2 * j + 1)] = std::min(std::max((int)round(D), 0), 255);
+        }
+    }
+
+    // Écriture du résultat
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+    // Libération de la mémoire
+    free(ImgIn);
+    free(ImgOut);
+    free(ImgBF);
+    free(ImgMFh);
+    free(ImgMFv);
+    free(ImgHF);
+}
+
+
+void analyse_ondelettes_multi_niveaux(char cNomImgOriginale[250]) {
+    // Pour chaque niveau de 1 à 6
+    for(int N = 1; N <= 6; N++) {
+        std::cout << "=== Niveau " << N << " ===" << std::endl;
+        
+        // Noms des fichiers temporaires
+        char cNomImgTransformee[250];
+        char cNomImgReconstruite[250];
+        sprintf(cNomImgTransformee, "transformee_N%d.pgm", N);
+        sprintf(cNomImgReconstruite, "reconstruite_N%d.pgm", N);
+
+        // 1. Transformation
+        transformee_ondelettes_recursive_pgm(cNomImgOriginale, cNomImgTransformee, N);
+
+        // 2. Reconstruction
+        reconstruire_ondelettes_recursive_pgm(cNomImgTransformee, cNomImgReconstruite, N);
+
+        // 3. Calcul du PSNR
+        PSNR_PGM(cNomImgOriginale, cNomImgReconstruite);
+    }
+}
+
+void quantifier_sousbandes(OCTET* ImgBF, OCTET* ImgMFh, OCTET* ImgMFv, OCTET* ImgHF, 
+    int QBF, int QMFh, int QMFv, int QHF, int taille) {
+    for(int i = 0; i < taille; i++) {
+        ImgBF[i] = (ImgBF[i] / QBF) * QBF;
+        ImgMFh[i] = ((ImgMFh[i] - 128) / QMFh) * QMFh + 128;
+        ImgMFv[i] = ((ImgMFv[i] - 128) / QMFv) * QMFv + 128;
+        ImgHF[i] = ((ImgHF[i] - 128) / QHF) * QHF + 128;
+    }
+}
+
+void transformee_ondelettes_quantifiee_pgm(char cNomImgLue[250], char cNomImgEcrite[250], 
+    int QBF, int QMFh, int QMFv, int QHF) {
+int nH, nW, nTaille;
+OCTET *ImgIn, *ImgOut, *ImgBF, *ImgMFh, *ImgMFv, *ImgHF;
+
+lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+nTaille = nH * nW;
+
+// Allocation des tableaux
+allocation_tableau(ImgIn, OCTET, nTaille);
+allocation_tableau(ImgOut, OCTET, nTaille);
+allocation_tableau(ImgBF, OCTET, nTaille/4);
+allocation_tableau(ImgMFh, OCTET, nTaille/4);
+allocation_tableau(ImgMFv, OCTET, nTaille/4);
+allocation_tableau(ImgHF, OCTET, nTaille/4);
+
+// Lecture de l'image
+lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+
+// Calcul des sous-bandes
+for (int i = 0; i < nH / 2; i++) {
+for (int j = 0; j < nW / 2; j++) {
+int A = ImgIn[(i * 2) * nW + (j * 2)];
+int B = ImgIn[(i * 2) * nW + ((j * 2) + 1)];
+int C = ImgIn[((i * 2) + 1) * nW + (j * 2)];
+int D = ImgIn[((i * 2) + 1) * nW + ((j * 2) + 1)];
+
+ImgBF[i * (nW / 2) + j] = std::min(std::max((A + B + C + D) / 4, 0), 255);
+ImgMFh[i * (nW / 2) + j] = std::min(std::max((A + B - C - D) / 2 + 128, 0), 255);
+ImgMFv[i * (nW / 2) + j] = std::min(std::max((A - B + C - D) / 2 + 128, 0), 255);
+ImgHF[i * (nW / 2) + j] = std::min(std::max((A - B - C + D) + 128, 0), 255);
+}
+}
+
+// Application de la quantification
+quantifier_sousbandes(ImgBF, ImgMFh, ImgMFv, ImgHF, QBF, QMFh, QMFv, QHF, nTaille/4);
+
+// Reconstruction après quantification
+for (int i = 0; i < nH / 2; i++) {
+for (int j = 0; j < nW / 2; j++) {
+float BF = ImgBF[i * (nW / 2) + j];
+float MFh = ImgMFh[i * (nW / 2) + j];
+float MFv = ImgMFv[i * (nW / 2) + j];
+float HF = ImgHF[i * (nW / 2) + j];
+
+float A = BF + 0.5f * (MFh - 128) + 0.5f * (MFv - 128) + 0.25f * (HF - 128);
+float B = BF + 0.5f * (MFh - 128) - 0.5f * (MFv - 128) - 0.25f * (HF - 128);
+float C = BF - 0.5f * (MFh - 128) + 0.5f * (MFv - 128) - 0.25f * (HF - 128);
+float D = BF - 0.5f * (MFh - 128) - 0.5f * (MFv - 128) + 0.25f * (HF - 128);
+
+ImgOut[(2 * i) * nW + (2 * j)] = std::min(std::max((int)round(A), 0), 255);
+ImgOut[(2 * i) * nW + (2 * j + 1)] = std::min(std::max((int)round(B), 0), 255);
+ImgOut[(2 * i + 1) * nW + (2 * j)] = std::min(std::max((int)round(C), 0), 255);
+ImgOut[(2 * i + 1) * nW + (2 * j + 1)] = std::min(std::max((int)round(D), 0), 255);
+}
+}
+
+// Écriture de l'image reconstruite
+ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+// Calcul et affichage du PSNR
+std::cout << "PSNR avec quantification (QBF=" << QBF << ", QMFh=" << QMFh 
+<< ", QMFv=" << QMFv << ", QHF=" << QHF << "):" << std::endl;
+PSNR_PGM(cNomImgLue, cNomImgEcrite);
+
+// Libération de la mémoire
+free(ImgIn);
+free(ImgOut);
+free(ImgBF);
+free(ImgMFh);
+free(ImgMFv);
+free(ImgHF);
+}
+
+
+
+
+void transformee_ondelettes_recursive_quantifiee_pgm(char cNomImgLue[250], 
+    char cNomImgEcrite[250], 
+    int niveauMax, 
+    int QBF, int QMFh, int QMFv, int QHF, 
+    int niveau=0) {
+    
+    int nH, nW, nTaille;
+    OCTET *ImgIn, *ImgOut, *ImgBF, *ImgMFh, *ImgMFv, *ImgHF;
+
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    // Vérification de la taille minimale
+    if (nH < 2 || nW < 2) {
+        return;
+    }
+
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    allocation_tableau(ImgOut, OCTET, nTaille);
+    allocation_tableau(ImgBF, OCTET, nTaille/4);
+    allocation_tableau(ImgMFh, OCTET, nTaille/4);
+    allocation_tableau(ImgMFv, OCTET, nTaille/4);
+    allocation_tableau(ImgHF, OCTET, nTaille/4);
+
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+
+    // Calcul des sous-bandes
+    for (int i = 0; i < nH / 2; i++) {
+        for (int j = 0; j < nW / 2; j++) {
+            int A = ImgIn[(i * 2) * nW + (j * 2)];
+            int B = ImgIn[(i * 2) * nW + ((j * 2) + 1)];
+            int C = ImgIn[((i * 2) + 1) * nW + (j * 2)];
+            int D = ImgIn[((i * 2) + 1) * nW + ((j * 2) + 1)];
+
+            ImgBF[i * (nW / 2) + j] = std::min(std::max((A + B + C + D) / 4, 0), 255);
+            ImgMFh[i * (nW / 2) + j] = std::min(std::max((A + B - C - D) / 2 + 128, 0), 255);
+            ImgMFv[i * (nW / 2) + j] = std::min(std::max((A - B + C - D) / 2 + 128, 0), 255);
+            ImgHF[i * (nW / 2) + j] = std::min(std::max((A - B - C + D) + 128, 0), 255);
+        }
+    }
+
+    // Application de la quantification
+    quantifier_sousbandes(ImgBF, ImgMFh, ImgMFv, ImgHF, QBF, QMFh, QMFv, QHF, nTaille/4);
+
+    // Reconstruction de l'image
+    for (int i = 0; i < nH / 2; i++) {
+        for (int j = 0; j < nW / 2; j++) {
+            ImgOut[(i * 2) * nW + (j * 2)] = ImgBF[i * (nW / 2) + j];
+            ImgOut[(i * 2) * nW + ((j * 2) + 1)] = ImgMFh[i * (nW / 2) + j];
+            ImgOut[((i * 2) + 1) * nW + (j * 2)] = ImgMFv[i * (nW / 2) + j];
+            ImgOut[((i * 2) + 1) * nW + ((j * 2) + 1)] = ImgHF[i * (nW / 2) + j];
+        }
+    }
+
+    // Appel récursif sur la sous-bande BF si nécessaire
+    if (niveau < niveauMax - 1 && nH >= 4 && nW >= 4) {
+        char temp_BF[250];
+        sprintf(temp_BF, "temp_BF_N%d_%d.pgm", niveauMax, niveau + 1);
+        
+        ecrire_image_pgm(temp_BF, ImgBF, nH/2, nW/2);
+        transformee_ondelettes_recursive_quantifiee_pgm(temp_BF, temp_BF, 
+            niveauMax, QBF, QMFh, QMFv, QHF, niveau + 1);
+            
+        lire_image_pgm(temp_BF, ImgBF, nTaille/4);
+        
+        // Mise à jour de l'image de sortie avec la nouvelle sous-bande BF
+        for (int i = 0; i < nH/2; i++) {
+            for (int j = 0; j < nW/2; j++) {
+                ImgOut[(i * 2) * nW + (j * 2)] = ImgBF[i * (nW/2) + j];
+            }
+        }
+        
+        remove(temp_BF);
+    }
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+    // Libération de la mémoire
+    free(ImgIn);
+    free(ImgOut);
+    free(ImgBF);
+    free(ImgMFh);
+    free(ImgMFv);
+    free(ImgHF);
+}
+
+
+void reconstruire_ondelettes_recursive_quantifiee_pgm(char cNomImgLue[250], 
+    char cNomImgEcrite[250], 
+    int niveauMax,
+    int QBF, int QMFh, int QMFv, int QHF,
+    int niveau=0) {
+    
+    int nH, nW, nTaille;
+    
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+
+    int nH_sub = nH / 2, nW_sub = nW / 2;
+    int subTaille = nH_sub * nW_sub;
+
+    OCTET *ImgIn, *ImgOut;
+    OCTET *ImgBF, *ImgMFh, *ImgMFv, *ImgHF;
+    
+    allocation_tableau(ImgIn, OCTET, nTaille);
+    allocation_tableau(ImgOut, OCTET, nTaille);
+    allocation_tableau(ImgBF, OCTET, subTaille);
+    allocation_tableau(ImgMFh, OCTET, subTaille);
+    allocation_tableau(ImgMFv, OCTET, subTaille);
+    allocation_tableau(ImgHF, OCTET, subTaille);
+
+    lire_image_pgm(cNomImgLue, ImgIn, nTaille);
+
+    // Extraction des sous-bandes
+    for (int i = 0; i < nH_sub; i++) {
+        for (int j = 0; j < nW_sub; j++) {
+            ImgBF[i * nW_sub + j] = ImgIn[(i * 2) * nW + (j * 2)];
+            ImgMFh[i * nW_sub + j] = ImgIn[(i * 2) * nW + ((j * 2) + 1)];
+            ImgMFv[i * nW_sub + j] = ImgIn[((i * 2) + 1) * nW + (j * 2)];
+            ImgHF[i * nW_sub + j] = ImgIn[((i * 2) + 1) * nW + ((j * 2) + 1)];
+        }
+    }
+
+    // Traitement récursif sur la sous-bande BF si nécessaire
+    if (niveau < niveauMax - 1 && nH_sub >= 2 && nW_sub >= 2) {
+        char temp_BF[250];
+        sprintf(temp_BF, "temp_BF_N%d_%d.pgm", niveauMax, niveau + 1);
+        
+        ecrire_image_pgm(temp_BF, ImgBF, nH_sub, nW_sub);
+        reconstruire_ondelettes_recursive_quantifiee_pgm(temp_BF, temp_BF,
+            niveauMax, QBF, QMFh, QMFv, QHF, niveau + 1);
+            
+        lire_image_pgm(temp_BF, ImgBF, subTaille);
+        
+        remove(temp_BF);
+    }
+
+
+    // Application de la quantification inverse
+    quantifier_sousbandes(ImgBF, ImgMFh, ImgMFv, ImgHF, QBF, QMFh, QMFv, QHF, subTaille);
+
+    // Reconstruction
+    for (int i = 0; i < nH_sub; i++) {
+        for (int j = 0; j < nW_sub; j++) {
+            float BF = ImgBF[i * nW_sub + j];
+            float MFh = ImgMFh[i * nW_sub + j] - 128.0f;
+            float MFv = ImgMFv[i * nW_sub + j] - 128.0f;
+            float HF = ImgHF[i * nW_sub + j] - 128.0f;
+
+            float A = BF + 0.5f * MFh + 0.5f * MFv + 0.25f * HF;
+            float B = BF + 0.5f * MFh - 0.5f * MFv - 0.25f * HF;
+            float C = BF - 0.5f * MFh + 0.5f * MFv - 0.25f * HF;
+            float D = BF - 0.5f * MFh - 0.5f * MFv + 0.25f * HF;
+
+            ImgOut[(2 * i) * nW + (2 * j)] = std::min(std::max((int)round(A), 0), 255);
+            ImgOut[(2 * i) * nW + (2 * j + 1)] = std::min(std::max((int)round(B), 0), 255);
+            ImgOut[(2 * i + 1) * nW + (2 * j)] = std::min(std::max((int)round(C), 0), 255);
+            ImgOut[(2 * i + 1) * nW + (2 * j + 1)] = std::min(std::max((int)round(D), 0), 255);
+        }
+    }
+
+    ecrire_image_pgm(cNomImgEcrite, ImgOut, nH, nW);
+
+    // Libération de la mémoire
+    free(ImgIn); free(ImgOut);
+    free(ImgBF); free(ImgMFh); free(ImgMFv); free(ImgHF);
+}
+
+void analyse_ondelettes_quantifiees_multi_niveaux(char cNomImgOriginale[250], 
+    int QBF, int QMFh, int QMFv, int QHF) {
+    // Pour chaque niveau de 1 à 6
+    for(int N = 1; N <= 6; N++) {
+        std::cout << "=== Niveau " << N << " avec quantification ===" << std::endl;
+        std::cout << "QBF=" << QBF << ", QMFh=" << QMFh 
+                 << ", QMFv=" << QMFv << ", QHF=" << QHF << std::endl;
+
+        // Noms des fichiers temporaires
+        char cNomImgTransformee[250];
+        char cNomImgReconstruite[250];
+        sprintf(cNomImgTransformee, "transformee_quantif_N%d.pgm", N);
+        sprintf(cNomImgReconstruite, "reconstruite_quantif_N%d.pgm", N);
+
+        // Ajuster les facteurs de quantification en fonction du niveau
+        int QBF_N = QBF * (N);  // Quantification plus forte pour les niveaux profonds
+        int QMFh_N = QMFh * (N);
+        int QMFv_N = QMFv * (N);
+        int QHF_N = QHF * (N);
+
+        // 1. Transformation avec quantification récursive
+        transformee_ondelettes_recursive_quantifiee_pgm(cNomImgOriginale, 
+                cNomImgTransformee, 
+                N, QBF_N, QMFh_N, QMFv_N, QHF_N);
+
+        // 2. Reconstruction
+        reconstruire_ondelettes_recursive_quantifiee_pgm(cNomImgTransformee, 
+            cNomImgReconstruite, 
+            N, QBF_N, QMFh_N, QMFv_N, QHF_N);
+
+        // 3. Calcul du PSNR
+        std::cout << "PSNR pour niveau " << N << ": ";
+        PSNR_PGM(cNomImgOriginale, cNomImgReconstruite);
+        std::cout << std::endl;
+    }
+}
+
+void analyse_debit_distorsion(char cNomImgOriginale[250]) {
+    std::cout << "Format: Niveau,QBF,QMFh,QMFv,QHF,BPP,PSNR" << std::endl;
+    
+    // Plus de valeurs de quantification pour plus de points
+    int Q_values[] = {2, 4, 8, 12, 16, 24, 32, 48, 64};
+    int num_q_values = 9;
+    
+    for(int N = 1; N <= 6; N++) {
+        for(int q_idx = 0; q_idx < num_q_values; q_idx++) {
+            int QBF = Q_values[q_idx];
+            int QMFh = Q_values[q_idx] * 2;
+            int QMFv = Q_values[q_idx] * 2;
+            int QHF = Q_values[q_idx] * 4;
+
+            char cNomImgTransformee[250];
+            char cNomImgReconstruite[250];
+            sprintf(cNomImgTransformee, "transformee_N%d_Q%d.pgm", N, QBF);
+            sprintf(cNomImgReconstruite, "reconstruite_N%d_Q%d.pgm", N, QBF);
+
+            // Transformation et reconstruction
+            transformee_ondelettes_recursive_quantifiee_pgm(
+                cNomImgOriginale, cNomImgTransformee, 
+                N, QBF, QMFh, QMFv, QHF);
+            
+            reconstruire_ondelettes_recursive_quantifiee_pgm(
+                cNomImgTransformee, cNomImgReconstruite, 
+                N, QBF, QMFh, QMFv, QHF);
+
+            // Calcul du débit plus précis
+            int nH, nW, nTaille;
+            lire_nb_lignes_colonnes_image_pgm(cNomImgOriginale, &nH, &nW);
+            nTaille = nH * nW;
+            
+            // Calcul du débit théorique basé sur la quantification
+            float bits_per_coeff = 0;
+            if (N == 1) {
+                bits_per_coeff = (8.0f/4) * (1.0f/QBF + 1.0f/QMFh + 1.0f/QMFv + 1.0f/QHF);
+            } else {
+                // Pour les niveaux supérieurs, prendre en compte la récursion
+                float factor = 1.0f / (4 * N);
+                bits_per_coeff = 8.0f * (factor/QBF + factor/QMFh + factor/QMFv + factor/QHF);
+            }
+            
+            float bpp = bits_per_coeff * nTaille / nTaille;  // bits par pixel
+
+            // Afficher les résultats
+            std::cout << N << "," << QBF << "," << QMFh << "," 
+                     << QMFv << "," << QHF << "," << bpp << ",";
+            PSNR_PGM(cNomImgOriginale, cNomImgReconstruite);
+        }
+    }
+}
+
+void RGB_to_YCrCb(OCTET* ImgRGB, OCTET* ImgY, OCTET* ImgCr, OCTET* ImgCb, int nTaille) {
+    for(int i = 0; i < nTaille/3; i++) {
+        float r = ImgRGB[3*i];
+        float g = ImgRGB[3*i+1];
+        float b = ImgRGB[3*i+2];
+
+        // Formules standards de conversion RGB -> YCrCb
+        float Y = 0.299f * r + 0.587f * g + 0.114f * b;
+        float Cb = -0.1687f * r - 0.3313f * g + 0.5f * b + 128;
+        float Cr = 0.5f * r - 0.4187f * g - 0.0813f * b + 128;
+
+        ImgY[i] = (OCTET)std::min(std::max((int)(Y), 0), 255);
+        ImgCb[i] = (OCTET)std::min(std::max((int)(Cb), 0), 255);
+        ImgCr[i] = (OCTET)std::min(std::max((int)(Cr), 0), 255);
+    }
+}
+
+void YCrCb_to_RGB(OCTET* ImgY, OCTET* ImgCr, OCTET* ImgCb, OCTET* ImgRGB, int nTaille) {
+    for (int i = 0; i < nTaille/3; i++) {
+        float Y = ImgY[i];
+        float Cb = ImgCb[i] - 128.0f;
+        float Cr = ImgCr[i] - 128.0f;
+
+        // Formules standards de conversion YCrCb -> RGB
+        float R = Y + 1.402f * Cr;
+        float G = Y - 0.34414f * Cb - 0.71414f * Cr;
+        float B = Y + 1.772f * Cb;
+
+        ImgRGB[3*i] = (OCTET)std::min(std::max((int)(R), 0), 255);
+        ImgRGB[3*i+1] = (OCTET)std::min(std::max((int)(G), 0), 255);
+        ImgRGB[3*i+2] = (OCTET)std::min(std::max((int)(B), 0), 255);
+    }
+}
+
+void transformee_ondelettes_recursive_quantifiee_ppm(char cNomImgLue[250], 
+    char cNomImgEcrite[250], 
+    int niveauMax, 
+    int QBF_Y, int QMFh_Y, int QMFv_Y, int QHF_Y,
+    int QBF_C, int QMFh_C, int QMFv_C, int QHF_C,
+    int niveau=0) {
+    
+    int nH, nW, nTaille, nTaille3;
+    
+    lire_nb_lignes_colonnes_image_ppm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    nTaille3 = nTaille * 3;
+
+    // Allocation et lecture
+    OCTET *ImgRGB, *ImgY, *ImgCr, *ImgCb;
+    allocation_tableau(ImgRGB, OCTET, nTaille3);
+    allocation_tableau(ImgY, OCTET, nTaille);
+    allocation_tableau(ImgCr, OCTET, nTaille);
+    allocation_tableau(ImgCb, OCTET, nTaille);
+
+    lire_image_ppm(cNomImgLue, ImgRGB, nTaille);
+    RGB_to_YCrCb(ImgRGB, ImgY, ImgCr, ImgCb, nTaille3);
+
+    // Noms des fichiers temporaires
+    char temp_Y[250], temp_Cr[250], temp_Cb[250];
+    char temp_Y_trans[250], temp_Cr_trans[250], temp_Cb_trans[250];
+    char temp_Y_rec[250], temp_Cr_rec[250], temp_Cb_rec[250];
+    
+    sprintf(temp_Y, "temp_Y_N%d_%d.pgm", niveauMax, niveau);
+    sprintf(temp_Cr, "temp_Cr_N%d_%d.pgm", niveauMax, niveau);
+    sprintf(temp_Cb, "temp_Cb_N%d_%d.pgm", niveauMax, niveau);
+    
+    sprintf(temp_Y_trans, "temp_Y_trans_N%d_%d.pgm", niveauMax, niveau);
+    sprintf(temp_Cr_trans, "temp_Cr_trans_N%d_%d.pgm", niveauMax, niveau);
+    sprintf(temp_Cb_trans, "temp_Cb_trans_N%d_%d.pgm", niveauMax, niveau);
+    
+    sprintf(temp_Y_rec, "temp_Y_rec_N%d_%d.pgm", niveauMax, niveau);
+    sprintf(temp_Cr_rec, "temp_Cr_rec_N%d_%d.pgm", niveauMax, niveau);
+    sprintf(temp_Cb_rec, "temp_Cb_rec_N%d_%d.pgm", niveauMax, niveau);
+
+    // ... reste du
+
+    // Sauvegarder les composantes
+    ecrire_image_pgm(temp_Y, ImgY, nH, nW);
+    ecrire_image_pgm(temp_Cr, ImgCr, nH, nW);
+    ecrire_image_pgm(temp_Cb, ImgCb, nH, nW);
+
+    // Transformation et reconstruction pour chaque composante
+    transformee_ondelettes_recursive_quantifiee_pgm(temp_Y, temp_Y_trans, niveauMax, 
+        QBF_Y, QMFh_Y, QMFv_Y, QHF_Y, niveau);
+    reconstruire_ondelettes_recursive_quantifiee_pgm(temp_Y_trans, temp_Y, niveauMax,
+        QBF_Y, QMFh_Y, QMFv_Y, QHF_Y, niveau);
+
+    transformee_ondelettes_recursive_quantifiee_pgm(temp_Cr, temp_Cr_trans, niveauMax,
+        QBF_C, QMFh_C, QMFv_C, QHF_C, niveau);
+    reconstruire_ondelettes_recursive_quantifiee_pgm(temp_Cr_trans, temp_Cr, niveauMax,
+        QBF_C, QMFh_C, QMFv_C, QHF_C, niveau);
+
+    transformee_ondelettes_recursive_quantifiee_pgm(temp_Cb, temp_Cb_trans, niveauMax,
+        QBF_C, QMFh_C, QMFv_C, QHF_C, niveau);
+    reconstruire_ondelettes_recursive_quantifiee_pgm(temp_Cb_trans, temp_Cb, niveauMax,
+        QBF_C, QMFh_C, QMFv_C, QHF_C, niveau);
+
+    // Lecture des résultats reconstruits
+    lire_image_pgm(temp_Y, ImgY, nTaille);
+    lire_image_pgm(temp_Cr, ImgCr, nTaille);
+    lire_image_pgm(temp_Cb, ImgCb, nTaille);
+
+    // Reconversion en RGB et sauvegarde
+    YCrCb_to_RGB(ImgY, ImgCr, ImgCb, ImgRGB, nTaille3);
+    ecrire_image_ppm(cNomImgEcrite, ImgRGB, nH, nW);
+
+    // Nettoyage
+    free(ImgRGB); free(ImgY); free(ImgCr); free(ImgCb);
+    // Nettoyage plus complet
+    remove(temp_Y); remove(temp_Y_trans); remove(temp_Y_rec);
+    remove(temp_Cr); remove(temp_Cr_trans); remove(temp_Cr_rec);
+    remove(temp_Cb); remove(temp_Cb_trans); remove(temp_Cb_rec);
+}
+
+void analyse_debit_distorsion_ppm(char cNomImgOriginale[250]) {
+    std::cout << "Format: Niveau,QBF_Y,QMFh_Y,QMFv_Y,QHF_Y,QBF_C,QMFh_C,QMFv_C,QHF_C,BPP,PSNR" << std::endl;
+    
+    int Q_values[] = {2, 4, 8, 12, 16, 24, 32, 48, 64};
+    int num_q_values = 9;
+    
+    for(int N = 1; N <= 6; N++) {
+        for(int q_idx = 0; q_idx < num_q_values; q_idx++) {
+            // Facteurs pour la luminance (Y)
+            int QBF_Y = Q_values[q_idx];
+            int QMFh_Y = Q_values[q_idx] * 2;
+            int QMFv_Y = Q_values[q_idx] * 2;
+            int QHF_Y = Q_values[q_idx] * 4;
+
+            // Facteurs pour la chrominance (Cr,Cb)
+            int QBF_C = Q_values[q_idx] * 2;
+            int QMFh_C = Q_values[q_idx] * 4;
+            int QMFv_C = Q_values[q_idx] * 4;
+            int QHF_C = Q_values[q_idx] * 8;
+
+            char cNomImgReconstruite[250];
+            sprintf(cNomImgReconstruite, "reconstruite_N%d_Q%d.ppm", N, QBF_Y);
+
+            // Transformation et reconstruction directe
+            transformee_ondelettes_recursive_quantifiee_ppm(
+                cNomImgOriginale, cNomImgReconstruite, 
+                N, 
+                QBF_Y, QMFh_Y, QMFv_Y, QHF_Y,
+                QBF_C, QMFh_C, QMFv_C, QHF_C);
+
+            // Calcul du débit théorique (3 composantes)
+            float bpp_y = (8.0f/(4*N)) * (1.0f/QBF_Y + 1.0f/QMFh_Y + 1.0f/QMFv_Y + 1.0f/QHF_Y);
+            float bpp_c = (8.0f/(4*N)) * (1.0f/QBF_C + 1.0f/QMFh_C + 1.0f/QMFv_C + 1.0f/QHF_C);
+            float bpp = bpp_y + 2 * bpp_c;  // Y + Cr + Cb
+
+            // Afficher les résultats
+            std::cout << N << "," << QBF_Y << "," << QMFh_Y << "," 
+                     << QMFv_Y << "," << QHF_Y << "," << QBF_C << ","
+                     << QMFh_C << "," << QMFv_C << "," << QHF_C << ","
+                     << bpp << ",";
+            PSNR_PPM(cNomImgOriginale, cNomImgReconstruite);
+        }
+    }
+}
 

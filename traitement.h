@@ -575,9 +575,9 @@ void roc(char cNomImgLue[250], char cNomImgReference[256], char cNomFichierEcrit
     allocation_tableau(ImgRef, OCTET, nTaille);
     // image seuillé de référence
     lire_image_pgm(cNomImgReference, ImgRef, nTaille);
-    
+    char temp[256] = "TempRoc____.pgm";
+
     for (int i = 0; i < number; i++) {
-        char temp[256] = "tempS.pgm";
         seuil_image_pgm_spe(cNomImgLue, temp, (int)(i * step));
         
         int vraiPositifs = 0, fauxPositifs = 0, vraiNegatifs = 0, fauxNegatifs = 0;
@@ -598,7 +598,53 @@ void roc(char cNomImgLue[250], char cNomImgReference[256], char cNomFichierEcrit
         
         free(ImgThresh);
     }
+    remove(temp);
+    free(ImgRef);
+    fclose(f);
+}
+
+void calculer_metrics(char cNomImgLue[250], char cNomImgReference[256], char cNomFichierEcrit[250], int number) {
+    float step = 255.0f / number;
+    FILE *f = fopen(cNomFichierEcrit, "w");
+    if (!f) {
+        perror("Erreur ouverture fichier");
+        return;
+    }
     
+    int nH, nW, nTaille;
+    lire_nb_lignes_colonnes_image_pgm(cNomImgLue, &nH, &nW);
+    nTaille = nH * nW;
+    
+    OCTET *ImgRef;
+    allocation_tableau(ImgRef, OCTET, nTaille);
+    lire_image_pgm(cNomImgReference, ImgRef, nTaille);
+    char temp[256] = "TempMetrics____.pgm";
+
+    for (int i = 0; i < number; i++) {
+        seuil_image_pgm_spe(cNomImgLue, temp, (int)(i * step));
+        
+        int vraiPositifs = 0, fauxPositifs = 0, vraiNegatifs = 0, fauxNegatifs = 0;
+        
+        OCTET *ImgThresh;
+        allocation_tableau(ImgThresh, OCTET, nTaille);
+        lire_image_pgm(temp, ImgThresh, nTaille);
+        
+        for (int j = 0; j < nTaille; j++) {
+            if (ImgThresh[j] == 255 && ImgRef[j] == 255) vraiPositifs++;
+            else if (ImgThresh[j] == 255 && ImgRef[j] == 0) fauxPositifs++;
+            else if (ImgThresh[j] == 0 && ImgRef[j] == 0) vraiNegatifs++;
+            else if (ImgThresh[j] == 0 && ImgRef[j] == 255) fauxNegatifs++;
+        }
+        
+        float sensibility = (float)vraiPositifs / (vraiPositifs + fauxNegatifs);
+        float specificity = (float)vraiNegatifs / (vraiNegatifs + fauxPositifs);
+        
+        fprintf(f, "Seuil: %d, TP: %d, FP: %d, TN: %d, FN: %d, Sensibilité: %f, Spécificité: %f\n", 
+                (int)(i * step), vraiPositifs, fauxPositifs, vraiNegatifs, fauxNegatifs, sensibility, specificity);
+        
+        free(ImgThresh);
+    }
+    remove(temp);
     free(ImgRef);
     fclose(f);
 }
