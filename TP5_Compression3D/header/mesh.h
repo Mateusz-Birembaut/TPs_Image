@@ -77,7 +77,7 @@ static float RMSE(Mesh & m1, Mesh & m2){
         Eigen::Vector3f vertexM1 = verticesM1[i];
         Eigen::Vector3f vertexM2 = verticesM2[i];
 
-        summ += pow((vertexM1[1] - vertexM2[1]), 2);
+        summ += (vertexM1 - vertexM2).squaredNorm();
     }
 
     float result =  sqrt( (1.0f/nb_vertices) * summ);
